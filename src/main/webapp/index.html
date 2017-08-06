@@ -93,11 +93,12 @@
                             <table>
                                 <tr>
                                     <td colspan=2>
-                                        <input type="hidden" name="void" id="void" />
-                                        <input type="text" name="query" id="query" size="60" placeholder="keywords or a dataset URI" />
+                                        <input type="text" name="q" id="q" size="60" placeholder="keywords or a dataset URI" />
+                                        <input type="hidden" name="offset" id="offset" value="0"/>
+                                        <input type="hidden" name="limit" id="limit" value="50"/>
                                     </td>
                                     <td>
-                                        <input type="submit" value="Search"><br>
+                                        <input type="submit" value="search"><br>
                                     </td>
                                 </tr>
                                 <!-- tr>
