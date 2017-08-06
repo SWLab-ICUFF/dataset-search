@@ -21,6 +21,12 @@
             <version>7.0</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.jena</groupId>
+            <artifactId>apache-jena</artifactId>
+            <type>pom</type>
+            <version>3.4.0</version>
+        </dependency>
     </dependencies>
 
     <build>

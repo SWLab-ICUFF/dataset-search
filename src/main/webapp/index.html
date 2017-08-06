@@ -1,10 +1,122 @@
-<!DOCTYPE html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
     <head>
-        <title>Start Page</title>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <script type="text/javascript">
+            function selectFile() {
+                var filename = document.getElementById('filename');
+                filename.click();
+            }
+            function setPhKwds() {
+                var query = document.getElementById('query');
+                query.setAttribute('placeholder', 'Keywords');
+                query.setAttribute('type', 'text');
+
+                var embed = document.getElementById("local_file");
+                if ('hidden' in embed) {    // Google Chrome and Internet Explorer
+                    if (typeof (embed.hidden) === "boolean") {  // Google Chrome
+                        embed.hidden = true;
+                    } else {  // Internet Explorer
+                        embed.hidden = "true";
+                    }
+                } else {
+                    embed.setAttribute("hidden", "true");
+                }
+            }
+            function setPhCollab() {
+                var query = document.getElementById('query');
+                query.setAttribute('placeholder', 'VoID URL or CKAN dataset URI of the target dataset');
+                query.setAttribute('type', 'url');
+
+                var embed = document.getElementById("local_file");
+                if ('hidden' in embed) {    // Google Chrome and Internet Explorer
+                    if (typeof (embed.hidden) === "boolean") {  // Google Chrome
+                        embed.hidden = false;
+                    } else {  // Internet Explorer
+                        embed.hidden = "false";
+                    }
+                } else {
+                    embed.setAttribute("hidden", "false");
+                }
+            }
+            function setPhSim() {
+                var query = document.getElementById('query');
+                query.setAttribute('placeholder', 'VoID URL or CKAN dataset URI of the target dataset');
+                query.setAttribute('type', 'url');
+
+                var embed = document.getElementById("local_file");
+                if ('hidden' in embed) {    // Google Chrome and Internet Explorer
+                    if (typeof (embed.hidden) === "boolean") {  // Google Chrome
+                        embed.hidden = false;
+                    } else {  // Internet Explorer
+                        embed.hidden = "false";
+                    }
+                } else {
+                    embed.setAttribute("hidden", "false");
+                }
+            }
+            function setQuery() {
+                var filename = document.getElementById('filename');
+                var query = document.getElementById('query');
+                var void_ = document.getElementById('void');
+                query.value = "file:///".concat(filename.value);
+                if (window.File && window.FileReader && window.FileList && window.Blob) {
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        void_.value = reader.result;
+                    };
+                    reader.readAsBinaryString(filename.files[0]);
+                } else {
+                    alert('The File APIs are not fully supported by your browser.');
+                }
+            }
+        </script>
+        <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+        <title>Dataset Search</title>
     </head>
     <body>
-        <h1>Hello World!</h1>
+        <center>
+            <h1>Dataset Search</h1>
+        </center>
+        <br>
+        <br>
+        <br>
+        <center>
+            <table>
+                <tr align="center">
+                    <td>
+                        <img src="LOD_Cloud_Diagram.png" alt="LOD Cloud Diagram" style="width: 404px; height: 228px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <form name="search" action="search" method="get">
+                            <table>
+                                <tr>
+                                    <td colspan=2>
+                                        <input type="hidden" name="void" id="void" />
+                                        <input type="text" name="query" id="query" size="60" placeholder="keywords or a dataset URI" />
+                                    </td>
+                                    <td>
+                                        <input type="submit" value="Search"><br>
+                                    </td>
+                                </tr>
+                                <!-- tr>
+                                    <td align="left">
+                                        <div id="local_file" hidden="true"><a href="javascript:selectFile();">local file</a></div><input type="file" id=filename style="display: none;" onchange="javascript:setQuery();">
+                                    </td>
+                                    <td align="right">
+                                        <input type="radio" name="method" id="method" value="keywords" checked onchange="javascript:setPhKwds();">Keywords
+                                        <input type="radio" name="method" id="method" value="collaborative" onchange="javascript:setPhCollab();">Collaborative
+                                        <input type="radio" name="method" id="method" value="similarity" onchange="javascript:setPhSim();">Similarity
+                                    </td>
+                                    <td></td>
+                                </tr-->
+                            </table>
+                        </form>
+
+                    </td>
+                </tr>
+            </table>
+        </center>
     </body>
 </html>
