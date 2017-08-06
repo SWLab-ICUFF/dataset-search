@@ -45,24 +45,26 @@ public class DoSearch extends HttpServlet {
     }
 
     private void doKeywordSearch(HttpServletResponse response, String keywords) {
-        Model model = ModelFactory.createDefaultModel();
+        String queryString = "prefix dcterms: <http://purl.org/dc/terms/>\n"
+                + "prefix void: <http://rdfs.org/ns/void#>\n"
+                + "prefix text: <http://jena.apache.org/text#>\n"
+                + "prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\n"
+                + "prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n"
+                + "\n"
+                + "construct {?s a void:Dataset.\n"
+                + "           ?s rdfs:label ?title.\n"
+                + "           ?s dcterms:description ?description.\n"
+                + "           ?s rdf:seeAlso ?seeAlso.}\n"
+                + "where {\n"
+                + "  graph ?g {?s text:query (dcterms:description 'brazil') ;\n"
+                + "               dcterms:title ?title;\n"
+                + "               dcterms:description ?description;\n"
+                + "               rdfs:seeAlso ?seeAlso.}\n"
+                + "}";
 
-        for (String service : listFusekiServices())
-            try {
-                String sparqlURL = String.format(SPARQL_URL_TEMPLATE, service);
-                String query = ""
-                        + "construct {?s ?p ?o.}\n"
-                        + "where {\n"
-                        + "  {?s ?p ?o. filter(regex(str(?s), \"/%1$s$\") || regex(str(?o), \"/%1$s$\"))}\n"
-                        + "  union\n"
-                        + "  {GRAPH ?g {?s ?p ?o. filter(regex(str(?s), \"/%1$s$\") || regex(str(?o), \"/%1$s$\"))}}\n"
-                        + "}";
-                query = String.format(query, uri);
-                QueryExecution q = QueryExecutionFactory.sparqlService(sparqlURL, query);
-                q.execConstruct(model);
-            } catch (Exception e) {
-            }
-        return model;
+        Model model = ModelFactory.createDefaultModel();
+        QueryExecution q = QueryExecutionFactory.sparqlService("http://localhost:8080/fuseki/DatasetDescriptions/sparql", queryString);
+        q.execConstruct(model);
 
         response.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
         response.setHeader("Location", "http://localhost:8080/dataset-search/");
