@@ -89,8 +89,8 @@ public class DoSearch extends HttpServlet {
                 + "  graph ?g {?s text:query (dcterms:description '%s') ;\n"
                 + "               dcterms:title ?title.}\n"
                 + "}\n"
-                + (offset != null ? " offset=" + offset + "\n" : "")
-                + (limit != null ? " limit=" + limit + "\n" : "");
+                + (offset != null ? "offset " + offset + "\n" : "")
+                + (limit != null ? "limit " + limit + "\n" : "");
         queryString = String.format(queryString, keywords);
 
         Model model = ModelFactory.createDefaultModel();

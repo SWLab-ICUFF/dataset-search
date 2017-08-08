@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <groupId>uff.ic.swlab</groupId>
     <artifactId>dataset-search</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.0.1</version>
     <packaging>war</packaging>
 
-    <name>dataset-search</name>
 
     <properties>
         <endorsed.dir>${project.build.directory}/endorsed</endorsed.dir>
@@ -35,6 +33,9 @@
     </dependencies>
 
     <build>
+        <sourceDirectory>./src/main/java</sourceDirectory>
+        <testSourceDirectory>./src/test/java</testSourceDirectory>
+        <finalName>${project.artifactId}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -46,6 +47,7 @@
                     <compilerArguments>
                         <endorseddirs>${endorsed.dir}</endorseddirs>
                     </compilerArguments>
+                    <debug>false</debug>
                 </configuration>
             </plugin>
             <plugin>
