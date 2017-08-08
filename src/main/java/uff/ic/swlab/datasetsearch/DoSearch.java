@@ -1,11 +1,9 @@
 package uff.ic.swlab.datasetsearch;
 
-import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -24,26 +22,36 @@ public class DoSearch extends HttpServlet {
         try {
             String path = request.getPathInfo();
             Lang lang = detectRequestedLang(request.getHeader("Accept"));
-            String query = URLDecoder.decode(request.getParameter("q"), "UTF-8");
-            System.out.println(query);
-            int offset = Integer.parseInt(request.getParameter("offset"));
-            int limit = Integer.parseInt(request.getParameter("limit"));
+
+            String q = URLDecoder.decode(request.getParameter("q"), "UTF-8");
+            URL voidURL = null;
+            String keywords = null;
+            if ((new UrlValidator()).isValid(q))
+                voidURL = new URL(q);
+            else
+                keywords = q;
+
+            String offsetString = request.getParameter("offset");
+            Integer offset = offsetString != null ? Integer.parseInt(offsetString) : null;
+
+            String limitString = request.getParameter("limit");
+            Integer limit = limitString != null ? Integer.parseInt(limitString) : null;
 
             if (lang == null) {
                 String resource = ("" + request.getRequestURL()).replaceFirst("http://", "http/")
-                        + "?q=" + URLEncoder.encode(query, "UTF-8") + "&offset=" + offset + "&limit=" + limit;
-
+                        + "?q=" + URLEncoder.encode(q, "UTF-8")
+                        + (offset != null ? "&offset=" + offset : "")
+                        + (limit != null ? "&limit=" + limit : "");
                 String url = "http://linkeddata.uriburner.com/about/html/" + resource + "&@Lookup@=&refresh=clean";
                 response.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
                 response.setHeader("Location", url);
             } else
                 try (OutputStream httpReponse = response.getOutputStream()) {
                     Model model;
-                    if ((new UrlValidator()).isValid(query))
-
-                        model = doVoidBasedSearch(response, new URL(query));
+                    if (voidURL != null)
+                        model = doVoidBasedSearch(voidURL, offset, limit);
                     else
-                        model = doKeywordSearch(response, query);
+                        model = doKeywordSearch(keywords, offset, limit);
 
                     if (model.size() > 0) {
                         response.setContentType(lang.getContentType().getContentType());
@@ -51,26 +59,23 @@ public class DoSearch extends HttpServlet {
                         httpReponse.flush();
                     } else
                         response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-
                 }
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.setHeader("Location", "http://localhost:8080/dataset-search/");
         }
     }
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) {
         response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
     }
 
-    private Model doVoidBasedSearch(HttpServletResponse response, URL datasetURI) {
+    private Model doVoidBasedSearch(URL datasetURI, Integer offset, Integer limit) {
         Model model = ModelFactory.createDefaultModel();
         return model;
     }
 
-    private Model doKeywordSearch(HttpServletResponse response, String keywords) {
+    private Model doKeywordSearch(String keywords, Integer offset, Integer limit) {
 
         String queryString = "prefix dcterms: <http://purl.org/dc/terms/>\n"
                 + "prefix void: <http://rdfs.org/ns/void#>\n"
@@ -82,7 +87,9 @@ public class DoSearch extends HttpServlet {
                 + "where {\n"
                 + "  graph ?g {?s text:query (dcterms:description '%s') ;\n"
                 + "               dcterms:title ?title.}\n"
-                + "}";
+                + "}\n"
+                + (offset != null ? " offset=" + offset + "\n" : "")
+                + (limit != null ? " limit=" + limit + "\n" : "");
         queryString = String.format(queryString, keywords);
 
         Model model = ModelFactory.createDefaultModel();
