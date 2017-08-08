@@ -1,75 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
     <head>
-        <script type="text/javascript">
-            function selectFile() {
-                var filename = document.getElementById('filename');
-                filename.click();
-            }
-            function setPhKwds() {
-                var query = document.getElementById('query');
-                query.setAttribute('placeholder', 'Keywords');
-                query.setAttribute('type', 'text');
-
-                var embed = document.getElementById("local_file");
-                if ('hidden' in embed) {    // Google Chrome and Internet Explorer
-                    if (typeof (embed.hidden) === "boolean") {  // Google Chrome
-                        embed.hidden = true;
-                    } else {  // Internet Explorer
-                        embed.hidden = "true";
-                    }
-                } else {
-                    embed.setAttribute("hidden", "true");
-                }
-            }
-            function setPhCollab() {
-                var query = document.getElementById('query');
-                query.setAttribute('placeholder', 'VoID URL or CKAN dataset URI of the target dataset');
-                query.setAttribute('type', 'url');
-
-                var embed = document.getElementById("local_file");
-                if ('hidden' in embed) {    // Google Chrome and Internet Explorer
-                    if (typeof (embed.hidden) === "boolean") {  // Google Chrome
-                        embed.hidden = false;
-                    } else {  // Internet Explorer
-                        embed.hidden = "false";
-                    }
-                } else {
-                    embed.setAttribute("hidden", "false");
-                }
-            }
-            function setPhSim() {
-                var query = document.getElementById('query');
-                query.setAttribute('placeholder', 'VoID URL or CKAN dataset URI of the target dataset');
-                query.setAttribute('type', 'url');
-
-                var embed = document.getElementById("local_file");
-                if ('hidden' in embed) {    // Google Chrome and Internet Explorer
-                    if (typeof (embed.hidden) === "boolean") {  // Google Chrome
-                        embed.hidden = false;
-                    } else {  // Internet Explorer
-                        embed.hidden = "false";
-                    }
-                } else {
-                    embed.setAttribute("hidden", "false");
-                }
-            }
-            function setQuery() {
-                var filename = document.getElementById('filename');
-                var query = document.getElementById('query');
-                var void_ = document.getElementById('void');
-                query.value = "file:///".concat(filename.value);
-                if (window.File && window.FileReader && window.FileList && window.Blob) {
-                    var reader = new FileReader();
-                    reader.onload = function (e) {
-                        void_.value = reader.result;
-                    };
-                    reader.readAsBinaryString(filename.files[0]);
-                } else {
-                    alert('The File APIs are not fully supported by your browser.');
-                }
-            }
-        </script>
         <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
         <title>Dataset Search</title>
     </head>
@@ -94,27 +25,13 @@
                                 <tr>
                                     <td colspan=2>
                                         <input type="text" name="q" id="q" size="60" placeholder="keywords or a dataset URI" />
-                                        <input type="hidden" name="offset" id="offset" value="0"/>
-                                        <input type="hidden" name="limit" id="limit" value="50"/>
                                     </td>
                                     <td>
                                         <input type="submit" value="search"><br>
                                     </td>
                                 </tr>
-                                <!-- tr>
-                                    <td align="left">
-                                        <div id="local_file" hidden="true"><a href="javascript:selectFile();">local file</a></div><input type="file" id=filename style="display: none;" onchange="javascript:setQuery();">
-                                    </td>
-                                    <td align="right">
-                                        <input type="radio" name="method" id="method" value="keywords" checked onchange="javascript:setPhKwds();">Keywords
-                                        <input type="radio" name="method" id="method" value="collaborative" onchange="javascript:setPhCollab();">Collaborative
-                                        <input type="radio" name="method" id="method" value="similarity" onchange="javascript:setPhSim();">Similarity
-                                    </td>
-                                    <td></td>
-                                </tr-->
                             </table>
                         </form>
-
                     </td>
                 </tr>
             </table>
