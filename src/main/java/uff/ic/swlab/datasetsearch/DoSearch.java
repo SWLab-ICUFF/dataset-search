@@ -48,11 +48,7 @@ public class DoSearch extends HttpServlet {
                     response.setHeader("Location", url);
                 } else
                     try (OutputStream httpReponse = response.getOutputStream()) {
-                        Model model;
-                        if (voidURL != null)
-                            model = doVoidBasedSearch(voidURL, offset, limit);
-                        else
-                            model = doKeywordSearch(keywords, offset, limit);
+                        Model model = doKeywordSearch(keywords, offset, limit);
 
                         if (model.size() > 0) {
                             response.setContentType(lang.getContentType().getContentType());
@@ -61,8 +57,25 @@ public class DoSearch extends HttpServlet {
                         } else
                             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
                     }
-            else
-                System.out.println("tratar void");
+            else if (lang == null) {
+                String resource = ("" + request.getRequestURL()).replaceFirst("http://", "http/")
+                        + "?q=" + URLEncoder.encode(q, "UTF-8")
+                        + (offset != null ? "&offset=" + offset : "")
+                        + (limit != null ? "&limit=" + limit : "");
+                String url = "http://linkeddata.uriburner.com/about/html/" + resource + "&@Lookup@=&refresh=clean";
+                response.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
+                response.setHeader("Location", url);
+            } else
+                try (OutputStream httpReponse = response.getOutputStream()) {
+                    Model model = doVoidBasedSearch(voidURL, offset, limit);
+
+                    if (model.size() > 0) {
+                        response.setContentType(lang.getContentType().getContentType());
+                        RDFDataMgr.write(httpReponse, model, lang);
+                        httpReponse.flush();
+                    } else
+                        response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                }
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
         }
