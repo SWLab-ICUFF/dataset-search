@@ -59,6 +59,7 @@ public class DoSearch extends HttpServlet {
                     }
             else if (lang == null)
                 try (OutputStream httpReponse = response.getOutputStream()) {
+                    Model model0 = readVoidURL(voidURL);
                     Model model = doVoidBasedSearch1(voidURL, offset, limit);
 
                     if (model.size() > 0) {
@@ -70,6 +71,7 @@ public class DoSearch extends HttpServlet {
                 }
             else
                 try (OutputStream httpReponse = response.getOutputStream()) {
+                    Model model0 = readVoidURL(voidURL);
                     Model model = doVoidBasedSearch2(voidURL, offset, limit);
 
                     if (model.size() > 0) {
@@ -131,6 +133,10 @@ public class DoSearch extends HttpServlet {
             if (accept.toLowerCase().contains(lang.getHeaderString().toLowerCase()))
                 return lang;
         return null;
+    }
+
+    private Model readVoidURL(URL voidURL) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
 }
