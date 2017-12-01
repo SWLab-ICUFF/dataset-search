@@ -57,17 +57,20 @@ public class DoSearch extends HttpServlet {
                         } else
                             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
                     }
-            else if (lang == null) {
-                String resource = ("" + request.getRequestURL()).replaceFirst("http://", "http/")
-                        + "?q=" + URLEncoder.encode(q, "UTF-8")
-                        + (offset != null ? "&offset=" + offset : "")
-                        + (limit != null ? "&limit=" + limit : "");
-                String url = "http://linkeddata.uriburner.com/about/html/" + resource + "&@Lookup@=&refresh=clean";
-                response.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
-                response.setHeader("Location", url);
-            } else
+            else if (lang == null)
                 try (OutputStream httpReponse = response.getOutputStream()) {
-                    Model model = doVoidBasedSearch(voidURL, offset, limit);
+                    Model model = doVoidBasedSearch1(voidURL, offset, limit);
+
+                    if (model.size() > 0) {
+                        response.setContentType(lang.getContentType().getContentType());
+                        RDFDataMgr.write(httpReponse, model, lang);
+                        httpReponse.flush();
+                    } else
+                        response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                }
+            else
+                try (OutputStream httpReponse = response.getOutputStream()) {
+                    Model model = doVoidBasedSearch2(voidURL, offset, limit);
 
                     if (model.size() > 0) {
                         response.setContentType(lang.getContentType().getContentType());
@@ -87,6 +90,16 @@ public class DoSearch extends HttpServlet {
     }
 
     private Model doVoidBasedSearch(URL datasetURI, Integer offset, Integer limit) {
+        Model model = ModelFactory.createDefaultModel();
+        return model;
+    }
+
+    private Model doVoidBasedSearch1(URL datasetURI, Integer offset, Integer limit) {
+        Model model = ModelFactory.createDefaultModel();
+        return model;
+    }
+
+    private Model doVoidBasedSearch2(URL datasetURI, Integer offset, Integer limit) {
         Model model = ModelFactory.createDefaultModel();
         return model;
     }
