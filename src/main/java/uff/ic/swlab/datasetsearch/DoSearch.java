@@ -89,11 +89,6 @@ public class DoSearch extends HttpServlet {
         response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
     }
 
-    private Model doVoidBasedSearch(URL datasetURI, Integer offset, Integer limit) {
-        Model model = ModelFactory.createDefaultModel();
-        return model;
-    }
-
     private Model doVoidBasedSearch1(URL datasetURI, Integer offset, Integer limit) {
         Model model = ModelFactory.createDefaultModel();
         return model;
