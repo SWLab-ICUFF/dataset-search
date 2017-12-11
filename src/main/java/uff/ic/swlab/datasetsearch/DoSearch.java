@@ -1,6 +1,8 @@
 package uff.ic.swlab.datasetsearch;
 
+import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLEncoder;
 import javax.servlet.http.HttpServlet;
@@ -23,42 +25,12 @@ public class DoSearch extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) {
         try {
             Parameters p = new Parameters(request);
-
             if (p.isKeywordSearch())
-                if (!p.isSearchForSelect()) {
-                    String resource = ("" + request.getRequestURL()).replaceFirst("http://", "http/")
-                            + "?q=" + URLEncoder.encode(p.query, "UTF-8")
-                            + (p.offset != null ? "&offset=" + p.offset : "")
-                            + (p.limit != null ? "&limit=" + p.limit : "")
-                            + (p.method != null ? "&method=" + p.method : "");
-                    String url = "http://linkeddata.uriburner.com/about/html/" + resource + "&@Lookup@=&refresh=clean";
-                    response.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
-                    response.setHeader("Location", url);
-                } else
+                if (p.isHumanRequest())
+                    redirectToUserInterface(request, p, response);
+                else if (p.isAppRequest())
                     try (OutputStream httpReponse = response.getOutputStream()) {
                         Model model = doKeywordSearch(p.keywords, p.offset, p.limit);
-
-                        if (model.size() > 0) {
-                            response.setContentType(p.lang.getContentType().getContentType());
-                            RDFDataMgr.write(httpReponse, model, p.lang);
-                            httpReponse.flush();
-                        } else
-                            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                    }
-            else if (p.isVoidSearch()) {
-                String resource = ("" + request.getRequestURL()).replaceFirst("http://", "http/")
-                        + "?q=" + URLEncoder.encode(p.query, "UTF-8")
-                        + (p.offset != null ? "&offset=" + p.offset : "")
-                        + (p.limit != null ? "&limit=" + p.limit : "")
-                        + (p.method != null ? "&method=" + p.method : "");
-                String url = "http://linkeddata.uriburner.com/about/html/" + resource + "&@Lookup@=&refresh=clean";
-                response.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
-                response.setHeader("Location", url);
-
-                if (!p.isSearchForSelect())
-                    try (OutputStream httpReponse = response.getOutputStream()) {
-                        Model model = doVoidSearchForSelect(p.voidURL, p.offset, p.limit);
-
                         if (model.size() > 0) {
                             response.setContentType(p.lang.getContentType().getContentType());
                             RDFDataMgr.write(httpReponse, model, p.lang);
@@ -67,21 +39,55 @@ public class DoSearch extends HttpServlet {
                             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
                     }
                 else
-                    try (OutputStream httpReponse = response.getOutputStream()) {
-                        Model model = doVoidSearchForScan(p.voidURL, p.offset, p.limit);
-
-                        if (model.size() > 0) {
-                            response.setContentType(p.lang.getContentType().getContentType());
-                            RDFDataMgr.write(httpReponse, model, p.lang);
-                            httpReponse.flush();
-                        } else
-                            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                    }
-            } else
-                throw new Exception("Undefined search method");
+                    new Exception("Unknown request agent.");
+            else if (p.isVoidSearch())
+                if (p.isHumanRequest())
+                    redirectToUserInterface(request, p, response);
+                else if (p.isAppRequest())
+                    if (p.method == p.method.SELECT)
+                        try (OutputStream httpReponse = response.getOutputStream()) {
+                            Model model = doVoidSearchForSelect(p.voidURL, p.offset, p.limit);
+                            if (model.size() > 0) {
+                                response.setContentType(p.lang.getContentType().getContentType());
+                                RDFDataMgr.write(httpReponse, model, p.lang);
+                                httpReponse.flush();
+                            } else
+                                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                        }
+                    else if (p.method == p.method.SCAN)
+                        try (OutputStream httpReponse = response.getOutputStream()) {
+                            Model model = doVoidSearchForScan(p.voidURL, p.offset, p.limit);
+                            if (model.size() > 0) {
+                                response.setContentType(p.lang.getContentType().getContentType());
+                                RDFDataMgr.write(httpReponse, model, p.lang);
+                                httpReponse.flush();
+                            } else
+                                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                        }
+                    else
+                        throw new Exception("Unknown search method.");
+                else
+                    throw new Exception("Unknown request agent.");
+            else
+                throw new Exception("Unknown search type..");
         } catch (Exception e) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            try {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
+            } catch (IOException ex) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            }
         }
+    }
+
+    private void redirectToUserInterface(HttpServletRequest request, Parameters p, HttpServletResponse response) throws UnsupportedEncodingException {
+        String resource = ("" + request.getRequestURL()).replaceFirst("http://", "http/")
+                + "?q=" + URLEncoder.encode(p.query, "UTF-8")
+                + (p.offset != null ? "&offset=" + p.offset : "")
+                + (p.limit != null ? "&limit=" + p.limit : "")
+                + (p.method != null ? "&method=" + p.method.label : "");
+        String url = "http://linkeddata.uriburner.com/about/html/" + resource + "&@Lookup@=&refresh=clean";
+        response.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
+        response.setHeader("Location", url);
     }
 
     private Model doKeywordSearch(String keywords, Integer offset, Integer limit) {

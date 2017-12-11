@@ -8,7 +8,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.validator.routines.UrlValidator;
 import org.apache.jena.riot.Lang;
 
-public class Parameters {
+public final class Parameters {
 
     public final Lang lang;
     public final String query;
@@ -16,7 +16,16 @@ public class Parameters {
     public final String keywords;
     public final Integer offset;
     public final Integer limit;
-    public final String method;
+    public final Methods method;
+
+    public enum Methods {
+        SELECT("select"), SCAN("scan");
+        public final String label;
+
+        Methods(String label) {
+            this.label = label;
+        }
+    }
 
     private Parameters() {
         lang = null;
@@ -48,18 +57,28 @@ public class Parameters {
         limit = limitString != null ? Integer.parseInt(limitString) : null;
 
         String methodString = URLDecoder.decode(request.getParameter("method"), "UTF-8");
-        if (methodString == null)
-            if (lang == null)
-                method = "select";
-            else
-                method = "scan";
-        else if (methodString.equals("select") || methodString.equals("scan"))
-            method = methodString;
-        else
+        if (isKeywordSearch())
             method = null;
-        if (method == null)
-            new Exception("Invalid search method.");
-
+        else if (isVoidSearch())
+            if (methodString != null)
+                if (methodString.equals(Methods.SELECT.label))
+                    method = Methods.SELECT;
+                else if (methodString.equals(Methods.SCAN.label))
+                    method = Methods.SCAN;
+                else {
+                    method = null;
+                    throw new Exception("Unknown search method.");
+                }
+            else if (isHumanRequest())
+                method = Methods.SELECT; // Infer SELECT method
+            else if (isAppRequest())
+                method = Methods.SCAN; // Infer SCAN method
+            else {
+                method = null;
+                throw new Exception("Unknown request agent.");
+            }
+        else
+            throw new Exception("Unknown search type.");
     }
 
     private Lang detectRequestedLang(String accept) {
@@ -79,7 +98,11 @@ public class Parameters {
         return voidURL != null;
     }
 
-    public boolean isSearchForSelect() {
-        return method.equals("select") || keywords != null || lang == null;
+    public boolean isHumanRequest() {
+        return lang == null;
+    }
+
+    public boolean isAppRequest() {
+        return lang != null;
     }
 }
