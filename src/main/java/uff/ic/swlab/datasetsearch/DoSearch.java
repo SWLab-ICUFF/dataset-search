@@ -2,17 +2,14 @@ package uff.ic.swlab.datasetsearch;
 
 import java.io.OutputStream;
 import java.net.URL;
-import java.net.URLDecoder;
 import java.net.URLEncoder;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.commons.validator.routines.UrlValidator;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 
 public class DoSearch extends HttpServlet {
@@ -20,67 +17,53 @@ public class DoSearch extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) {
         try {
-            String path = request.getPathInfo();
-            Lang lang = detectRequestedLang(request.getHeader("Accept"));
+            Parameters p = new Parameters(request);
 
-            String q = URLDecoder.decode(request.getParameter("q"), "UTF-8");
-            URL voidURL = null;
-            String keywords = null;
-            if ((new UrlValidator()).isValid(q))
-                voidURL = new URL(q);
-            else
-                keywords = q;
-
-            String offsetString = request.getParameter("offset");
-            Integer offset = offsetString != null ? Integer.parseInt(offsetString) : null;
-
-            String limitString = request.getParameter("limit");
-            Integer limit = limitString != null ? Integer.parseInt(limitString) : null;
-
-            if (keywords != null)
-                if (lang == null) {
+            if (p.isKeywordSearch())
+                if (!p.isApplicationRequest()) {
                     String resource = ("" + request.getRequestURL()).replaceFirst("http://", "http/")
-                            + "?q=" + URLEncoder.encode(q, "UTF-8")
-                            + (offset != null ? "&offset=" + offset : "")
-                            + (limit != null ? "&limit=" + limit : "");
+                            + "?q=" + URLEncoder.encode(p.query, "UTF-8")
+                            + (p.offset != null ? "&offset=" + p.offset : "")
+                            + (p.limit != null ? "&limit=" + p.limit : "");
                     String url = "http://linkeddata.uriburner.com/about/html/" + resource + "&@Lookup@=&refresh=clean";
                     response.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
                     response.setHeader("Location", url);
                 } else
                     try (OutputStream httpReponse = response.getOutputStream()) {
-                        Model model = doKeywordSearch(keywords, offset, limit);
+                        Model model = doKeywordSearch(p.keywords, p.offset, p.limit);
 
                         if (model.size() > 0) {
-                            response.setContentType(lang.getContentType().getContentType());
-                            RDFDataMgr.write(httpReponse, model, lang);
+                            response.setContentType(p.lang.getContentType().getContentType());
+                            RDFDataMgr.write(httpReponse, model, p.lang);
                             httpReponse.flush();
                         } else
                             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
                     }
-            else if (lang == null)
-                try (OutputStream httpReponse = response.getOutputStream()) {
-                    Model model0 = readVoidURL(voidURL);
-                    Model model = doVoidBasedSearch1(voidURL, offset, limit);
+            else if (p.isVoidBasedSearch())
+                if (!p.isApplicationRequest())
+                    try (OutputStream httpReponse = response.getOutputStream()) {
+                        Model model = doVoidBasedSearch1(p.voidURL, p.offset, p.limit);
 
-                    if (model.size() > 0) {
-                        response.setContentType(lang.getContentType().getContentType());
-                        RDFDataMgr.write(httpReponse, model, lang);
-                        httpReponse.flush();
-                    } else
-                        response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                }
+                        if (model.size() > 0) {
+                            response.setContentType(p.lang.getContentType().getContentType());
+                            RDFDataMgr.write(httpReponse, model, p.lang);
+                            httpReponse.flush();
+                        } else
+                            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                    }
+                else
+                    try (OutputStream httpReponse = response.getOutputStream()) {
+                        Model model = doVoidBasedSearch2(p.voidURL, p.offset, p.limit);
+
+                        if (model.size() > 0) {
+                            response.setContentType(p.lang.getContentType().getContentType());
+                            RDFDataMgr.write(httpReponse, model, p.lang);
+                            httpReponse.flush();
+                        } else
+                            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                    }
             else
-                try (OutputStream httpReponse = response.getOutputStream()) {
-                    Model model0 = readVoidURL(voidURL);
-                    Model model = doVoidBasedSearch2(voidURL, offset, limit);
-
-                    if (model.size() > 0) {
-                        response.setContentType(lang.getContentType().getContentType());
-                        RDFDataMgr.write(httpReponse, model, lang);
-                        httpReponse.flush();
-                    } else
-                        response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                }
+                throw new Exception("Undefined search method");
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
         }
@@ -89,16 +72,6 @@ public class DoSearch extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) {
         response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
-    }
-
-    private Model doVoidBasedSearch1(URL datasetURI, Integer offset, Integer limit) {
-        Model model = ModelFactory.createDefaultModel();
-        return model;
-    }
-
-    private Model doVoidBasedSearch2(URL datasetURI, Integer offset, Integer limit) {
-        Model model = ModelFactory.createDefaultModel();
-        return model;
     }
 
     private Model doKeywordSearch(String keywords, Integer offset, Integer limit) {
@@ -126,13 +99,16 @@ public class DoSearch extends HttpServlet {
         return model;
     }
 
-    private Lang detectRequestedLang(String accept) {
-        Lang[] langs = {Lang.RDFXML, Lang.TURTLE, Lang.TTL, Lang.NTRIPLES, Lang.N3, Lang.NT,
-            Lang.TRIG, Lang.TRIX, Lang.JSONLD, Lang.RDFJSON, Lang.RDFTHRIFT, Lang.NQUADS, Lang.NQ};
-        for (Lang lang : langs)
-            if (accept.toLowerCase().contains(lang.getHeaderString().toLowerCase()))
-                return lang;
-        return null;
+    private Model doVoidBasedSearch1(URL voidURL, Integer offset, Integer limit) {
+        Model voID = readVoidURL(voidURL);
+        Model model = ModelFactory.createDefaultModel();
+        return model;
+    }
+
+    private Model doVoidBasedSearch2(URL voidURL, Integer offset, Integer limit) {
+        Model voID = readVoidURL(voidURL);
+        Model model = ModelFactory.createDefaultModel();
+        return model;
     }
 
     private Model readVoidURL(URL voidURL) {
