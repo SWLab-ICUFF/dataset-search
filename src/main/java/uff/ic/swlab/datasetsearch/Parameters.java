@@ -16,6 +16,7 @@ public class Parameters {
     public final String keywords;
     public final Integer offset;
     public final Integer limit;
+    public final String method;
 
     private Parameters() {
         lang = null;
@@ -24,6 +25,7 @@ public class Parameters {
         keywords = null;
         offset = 0;
         limit = 0;
+        method = null;
     }
 
     public Parameters(HttpServletRequest request) throws UnsupportedEncodingException, MalformedURLException {
@@ -44,6 +46,8 @@ public class Parameters {
 
         String limitString = request.getParameter("limit");
         limit = limitString != null ? Integer.parseInt(limitString) : null;
+
+        method = lang == null ? "select" : "scan";
     }
 
     private Lang detectRequestedLang(String accept) {
@@ -63,7 +67,7 @@ public class Parameters {
         return voidURL != null;
     }
 
-    public boolean isApplicationRequest() {
+    public boolean isSearchForScan() {
         return lang != null;
     }
 }

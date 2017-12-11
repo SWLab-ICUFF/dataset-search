@@ -25,11 +25,12 @@ public class DoSearch extends HttpServlet {
             Parameters p = new Parameters(request);
 
             if (p.isKeywordSearch())
-                if (!p.isApplicationRequest()) {
+                if (!p.isSearchForScan()) {
                     String resource = ("" + request.getRequestURL()).replaceFirst("http://", "http/")
                             + "?q=" + URLEncoder.encode(p.query, "UTF-8")
                             + (p.offset != null ? "&offset=" + p.offset : "")
-                            + (p.limit != null ? "&limit=" + p.limit : "");
+                            + (p.limit != null ? "&limit=" + p.limit : "")
+                            + (p.method != null ? "&method=" + p.method : "");
                     String url = "http://linkeddata.uriburner.com/about/html/" + resource + "&@Lookup@=&refresh=clean";
                     response.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
                     response.setHeader("Location", url);
@@ -44,10 +45,19 @@ public class DoSearch extends HttpServlet {
                         } else
                             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
                     }
-            else if (p.isVoidSearch())
-                if (!p.isApplicationRequest())
+            else if (p.isVoidSearch()) {
+                String resource = ("" + request.getRequestURL()).replaceFirst("http://", "http/")
+                        + "?q=" + URLEncoder.encode(p.query, "UTF-8")
+                        + (p.offset != null ? "&offset=" + p.offset : "")
+                        + (p.limit != null ? "&limit=" + p.limit : "")
+                        + (p.method != null ? "&method=" + p.method : "");
+                String url = "http://linkeddata.uriburner.com/about/html/" + resource + "&@Lookup@=&refresh=clean";
+                response.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
+                response.setHeader("Location", url);
+
+                if (!p.isSearchForScan())
                     try (OutputStream httpReponse = response.getOutputStream()) {
-                        Model model = doVoidSearchForSelection(p.voidURL, p.offset, p.limit);
+                        Model model = doVoidSearchForSelect(p.voidURL, p.offset, p.limit);
 
                         if (model.size() > 0) {
                             response.setContentType(p.lang.getContentType().getContentType());
@@ -67,7 +77,7 @@ public class DoSearch extends HttpServlet {
                         } else
                             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
                     }
-            else
+            } else
                 throw new Exception("Undefined search method");
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -99,7 +109,7 @@ public class DoSearch extends HttpServlet {
         return model;
     }
 
-    private Model doVoidSearchForSelection(URL voidURL, Integer offset, Integer limit) {
+    private Model doVoidSearchForSelect(URL voidURL, Integer offset, Integer limit) {
         Model voID = readVoidURL(voidURL);
         Model model = ModelFactory.createDefaultModel();
         return model;
