@@ -28,7 +28,7 @@ public class Parameters {
         method = null;
     }
 
-    public Parameters(HttpServletRequest request) throws UnsupportedEncodingException, MalformedURLException {
+    public Parameters(HttpServletRequest request) throws UnsupportedEncodingException, MalformedURLException, Exception {
         String path = request.getPathInfo();
         lang = detectRequestedLang(request.getHeader("Accept"));
 
@@ -47,7 +47,19 @@ public class Parameters {
         String limitString = request.getParameter("limit");
         limit = limitString != null ? Integer.parseInt(limitString) : null;
 
-        method = lang == null ? "select" : "scan";
+        String methodString = URLDecoder.decode(request.getParameter("method"), "UTF-8");
+        if (methodString == null)
+            if (lang == null)
+                method = "select";
+            else
+                method = "scan";
+        else if (methodString.equals("select") || methodString.equals("scan"))
+            method = methodString;
+        else
+            method = null;
+        if (method == null)
+            new Exception("Invalid search method.");
+
     }
 
     private Lang detectRequestedLang(String accept) {
@@ -67,7 +79,7 @@ public class Parameters {
         return voidURL != null;
     }
 
-    public boolean isSearchForScan() {
-        return lang != null;
+    public boolean isSearchForSelect() {
+        return method.equals("select") || keywords != null || lang == null;
     }
 }

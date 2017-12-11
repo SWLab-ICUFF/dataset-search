@@ -25,7 +25,7 @@ public class DoSearch extends HttpServlet {
             Parameters p = new Parameters(request);
 
             if (p.isKeywordSearch())
-                if (!p.isSearchForScan()) {
+                if (!p.isSearchForSelect()) {
                     String resource = ("" + request.getRequestURL()).replaceFirst("http://", "http/")
                             + "?q=" + URLEncoder.encode(p.query, "UTF-8")
                             + (p.offset != null ? "&offset=" + p.offset : "")
@@ -55,7 +55,7 @@ public class DoSearch extends HttpServlet {
                 response.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
                 response.setHeader("Location", url);
 
-                if (!p.isSearchForScan())
+                if (!p.isSearchForSelect())
                     try (OutputStream httpReponse = response.getOutputStream()) {
                         Model model = doVoidSearchForSelect(p.voidURL, p.offset, p.limit);
 
