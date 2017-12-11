@@ -15,6 +15,11 @@ import org.apache.jena.riot.RDFDataMgr;
 public class DoSearch extends HttpServlet {
 
     @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) {
+        response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+    }
+
+    @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) {
         try {
             Parameters p = new Parameters(request);
@@ -42,7 +47,7 @@ public class DoSearch extends HttpServlet {
             else if (p.isVoidBasedSearch())
                 if (!p.isApplicationRequest())
                     try (OutputStream httpReponse = response.getOutputStream()) {
-                        Model model = doVoidBasedSearch1(p.voidURL, p.offset, p.limit);
+                        Model model = doVoidSearchForSelection(p.voidURL, p.offset, p.limit);
 
                         if (model.size() > 0) {
                             response.setContentType(p.lang.getContentType().getContentType());
@@ -53,7 +58,7 @@ public class DoSearch extends HttpServlet {
                     }
                 else
                     try (OutputStream httpReponse = response.getOutputStream()) {
-                        Model model = doVoidBasedSearch2(p.voidURL, p.offset, p.limit);
+                        Model model = doVoidSearchForScan(p.voidURL, p.offset, p.limit);
 
                         if (model.size() > 0) {
                             response.setContentType(p.lang.getContentType().getContentType());
@@ -67,11 +72,6 @@ public class DoSearch extends HttpServlet {
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
         }
-    }
-
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) {
-        response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
     }
 
     private Model doKeywordSearch(String keywords, Integer offset, Integer limit) {
@@ -99,13 +99,13 @@ public class DoSearch extends HttpServlet {
         return model;
     }
 
-    private Model doVoidBasedSearch1(URL voidURL, Integer offset, Integer limit) {
+    private Model doVoidSearchForSelection(URL voidURL, Integer offset, Integer limit) {
         Model voID = readVoidURL(voidURL);
         Model model = ModelFactory.createDefaultModel();
         return model;
     }
 
-    private Model doVoidBasedSearch2(URL voidURL, Integer offset, Integer limit) {
+    private Model doVoidSearchForScan(URL voidURL, Integer offset, Integer limit) {
         Model voID = readVoidURL(voidURL);
         Model model = ModelFactory.createDefaultModel();
         return model;
