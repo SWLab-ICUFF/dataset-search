@@ -44,7 +44,7 @@ public class DoSearch extends HttpServlet {
                         } else
                             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
                     }
-            else if (p.isVoidBasedSearch())
+            else if (p.isVoidSearch())
                 if (!p.isApplicationRequest())
                     try (OutputStream httpReponse = response.getOutputStream()) {
                         Model model = doVoidSearchForSelection(p.voidURL, p.offset, p.limit);

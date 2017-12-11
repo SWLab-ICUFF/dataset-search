@@ -59,7 +59,7 @@ public class Parameters {
         return keywords != null;
     }
 
-    public boolean isVoidBasedSearch() {
+    public boolean isVoidSearch() {
         return voidURL != null;
     }
 
