@@ -56,10 +56,12 @@ public final class Parameters {
         String limitString = request.getParameter("limit");
         limit = limitString != null ? Integer.parseInt(limitString) : null;
 
-        String methodString = URLDecoder.decode(request.getParameter("method"), "UTF-8");
-        if (isKeywordSearch())
+        //String methodString = URLDecoder.decode(request.getParameter("method"), "UTF-8");
+        if (isKeywordSearch()){
             method = null;
-        else if (isVoidSearch())
+            String methodString = request.getParameter("method");
+        }else if (isVoidSearch()){
+            String methodString = URLDecoder.decode(request.getParameter("method"), "UTF-8");
             if (methodString != null)
                 if (methodString.equals(Methods.SELECT.label))
                     method = Methods.SELECT;
@@ -77,7 +79,7 @@ public final class Parameters {
                 method = null;
                 throw new Exception("Unknown request agent.");
             }
-        else
+        }else
             throw new Exception("Unknown search type.");
     }
 

@@ -194,6 +194,7 @@ public class JRIP_Tranning {
     
     public static void main(String[] args) throws ClassNotFoundException, SQLException {
         System.out.println("Calculing tf-idf...");
+        
         Connection conn = ConnectionPost.Conectar();
         ArrayList<String> categories = getCategory();
         ArrayList<String> datasets = GetDatasets();
