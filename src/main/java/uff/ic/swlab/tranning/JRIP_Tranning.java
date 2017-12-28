@@ -309,7 +309,6 @@ public class JRIP_Tranning {
                 vetor[index] = value_tf_idf;
             }
             all_vectors.put(dataset, vetor);
-            break;
         }
 
         //String dir = System.getProperty("user.dir")+"/dat";
