@@ -143,7 +143,7 @@ public class DoSearch extends HttpServlet {
                     }
                 }
         }catch(Throwable e){
-            System.out.println("Error Read Void");
+            System.out.println("Error Read Void.");
         }
         return aux;
     }
