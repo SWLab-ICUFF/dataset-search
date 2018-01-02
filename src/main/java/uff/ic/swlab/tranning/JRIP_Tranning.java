@@ -23,6 +23,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
@@ -31,6 +36,7 @@ import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Literal;
+import org.apache.jena.rdf.model.RDFNode;
 import uff.ic.swlab.connection.ConnectionPost;
 import static uff.ic.swlab.tranning.Bayesian_tranning.InsertProb;
 
@@ -92,16 +98,16 @@ public class JRIP_Tranning {
         ArrayList<String> datasets = new ArrayList<>();
         String qr = "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\n"
                 + "PREFIX void: <http://rdfs.org/ns/void#>\n"
-                + "                     select distinct ?d1\n"
-                + "                          where {{graph ?d1 {?d2 void:subset ?ls.\n"
-                + "                                                      ?ls void:objectsTarget ?feature.\n"
-                + "                                   }}\n"
-                + "  UNION{?d2 void:subset ?uri_random.\n"
-                + "                                                       			?uri_random void:triples ?frequency.\n"
-                + "                                                				?uri_random <http://purl.org/dc/terms/subject> ?feature \n"
-                + "                                              		  			optional {?d2 void:triples ?datasetSize} }\n"
-                + "                                FILTER regex(str(?d1),\"datahub\")\n"
-                + "                                     }";
+                + "                                     select distinct ?d1\n"
+                + "                                          where {{graph ?d1 {\n"
+                + "      														?d2 void:subset ?uri_random.\n"
+                + "      														?uri_random void:triples ?frequency.\n"
+                + "      														?uri_random <http://purl.org/dc/terms/subject> ?feature \n"
+                + "      														optional {?d2 void:triples ?datasetSize}	\n"
+                + "                                                   }}\n"
+                + "  											FILTER regex(str(?d1),\"datahub\")\n"
+                + "                 \n"
+                + "                                                     }";
         QueryExecution qe = QueryExecutionFactory.sparqlService("http://localhost:8080/fuseki/DatasetDescriptions/sparql", qr);
         ResultSet rs = qe.execSelect();
         while (rs.hasNext()) {
@@ -227,8 +233,8 @@ public class JRIP_Tranning {
     }
 
     public static void createHeadWeka(String dataset, Map<String, Integer> indices_categories) throws FileNotFoundException, UnsupportedEncodingException {
-        //PrintWriter writer = new PrintWriter(System.getProperty("user.dir")+"/dat/"+dataset+".arff");
-        PrintWriter writer = new PrintWriter("/media/angelo/Novo volume/dat/" + dataset + ".arff");
+        PrintWriter writer = new PrintWriter(System.getProperty("user.dir")+"/dat/"+dataset+".arff");
+        //PrintWriter writer = new PrintWriter("/media/angelo/Novo volume/dat/" + dataset + ".arff");
         writer.print("@RELATION features");
         writer.print("\n\n\n");
         Set<String> key = indices_categories.keySet();
@@ -255,29 +261,34 @@ public class JRIP_Tranning {
         int result = 0;
         String qr = "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\n"
                 + "PREFIX void: <http://rdfs.org/ns/void#>\n"
-                + "                      select distinct ?feature\n"
+                + "                      select distinct ?d1\n"
                 + "						from named <" + dataset + ">\n"
                 + "                          where {{graph ?d1 {?d2 void:subset ?ls.\n"
                 + "                                      ?ls void:objectsTarget <" + linkset + ">. \n"
                 + "                                   }}\n"
                 + "                          }";
-        System.out.println(qr);
+        
         QueryExecution qe = QueryExecutionFactory.sparqlService("http://localhost:8080/fuseki/DatasetDescriptions/sparql", qr);
         ResultSet rs = qe.execSelect();
+        String aux = null;
         while (rs.hasNext()) {
             QuerySolution soln = rs.nextSolution();
-            Literal lit = soln.getLiteral("feature");
-            result = lit.getInt();
+            aux = String.valueOf(soln.get("d1"));
         }
+        if(aux != null)
+            result = 1;
+        else
+            result = 0;
+        
         qe.close();
         return result;
 
     }
 
-    public static void main(String[] args) throws ClassNotFoundException, SQLException, FileNotFoundException, UnsupportedEncodingException, IOException {
+    public static void main(String[] args) throws ClassNotFoundException, SQLException, FileNotFoundException, UnsupportedEncodingException, IOException, InterruptedException, ExecutionException {
         Map<String, Integer> indices_categories = new HashMap<String, Integer>();
         ArrayList<String> categories = getCategory();
-        Integer indice = 1;
+        Integer indice = 0;
         System.out.println("Assigning Indices...");
         for (String category : categories) {
             indices_categories.put(category, indice);
@@ -294,25 +305,32 @@ public class JRIP_Tranning {
             System.out.println("Create head file for Dataset " + d);
             createHeadWeka(d, indices_categories);
         }
-
+        
+        System.out.println("Getting Categories");
+        Map<String, ArrayList<String>> category_datasets = new HashMap<String, ArrayList<String>>();
+        for(String dataset: datasets){
+            ArrayList<String> category_dataset = getCategoryDataset(dataset);
+            category_datasets.put(dataset, category_dataset);
+        }
+        
+        int counter = 0;
+        Float[] result;
+        ExecutorService pool = Executors.newFixedThreadPool(2);
         Map<String, Float[]> all_vectors = new HashMap<String, Float[]>();
         for (String dataset : datasets) {
-            System.out.println("Building vector for " + dataset);
-            Float[] vetor = new Float[indices_categories.size()];
-            Arrays.fill(vetor, new Float(0));
-            ArrayList<String> category_dataset = getCategoryDataset(dataset);
-            for (String category : category_dataset) {
-                float value_tf = TF(category, dataset);
-                float value_idf = idf(category, datasets);
-                float value_tf_idf = value_tf * value_idf;
-                int index = indices_categories.get(category);
-                vetor[index] = value_tf_idf;
+            if(dataset.equals("http://datahub.io/api/rest/dataset/rkb-explorer-acm")){
+                ArrayList<String> category_dataset = category_datasets.get(dataset);
+            System.out.println((++counter) + " Building vector for " + dataset);
+            Future <Float[]> result_t = pool.submit(new TaskBuildVector(indices_categories.size(), dataset, category_dataset, datasets, indices_categories));
+            all_vectors.put(dataset, result_t.get());
+                
             }
-            all_vectors.put(dataset, vetor);
+            
+            
+            
         }
 
-        //String dir = System.getProperty("user.dir")+"/dat";
-        String dir = "/media/angelo/Novo volume/dat";
+        String dir = System.getProperty("user.dir")+"/dat";
         File file = new File(dir);
         File afile[] = file.listFiles();
         for (int j = 0; j < afile.length; j++) {
@@ -332,6 +350,9 @@ public class JRIP_Tranning {
                     int size = v_linkset.length;
                     String linkset = "http://swlab.ic.uff.br/resource/" + v_linkset[size - 1];
                     int class_ = getClass(filename, linkset);
+                    if(class_ == 1)
+                        System.out.println(class_);
+                        
                     bw.write(String.valueOf(class_));
                     bw.write("\n");
 

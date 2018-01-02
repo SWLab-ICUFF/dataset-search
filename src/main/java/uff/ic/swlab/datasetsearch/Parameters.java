@@ -55,13 +55,15 @@ public final class Parameters {
 
         String limitString = request.getParameter("limit");
         limit = limitString != null ? Integer.parseInt(limitString) : null;
-
-        //String methodString = URLDecoder.decode(request.getParameter("method"), "UTF-8");
+        String methodString = null;
+        try{
+            methodString = URLDecoder.decode(request.getParameter("method"), "UTF-8");
+        }catch(Throwable e) {
+            System.out.println(e);
+        }
         if (isKeywordSearch()){
             method = null;
-            String methodString = request.getParameter("method");
         }else if (isVoidSearch()){
-            String methodString = URLDecoder.decode(request.getParameter("method"), "UTF-8");
             if (methodString != null)
                 if (methodString.equals(Methods.SELECT.label))
                     method = Methods.SELECT;
