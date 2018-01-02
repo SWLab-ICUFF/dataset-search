@@ -69,7 +69,7 @@ public class DoSearch extends HttpServlet {
                 else
                     throw new Exception("Unknown request agent.");
             else
-                throw new Exception("Unknown search type..");
+                throw new Exception("Unknown search type.");
         } catch (Exception e) {
             try {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
