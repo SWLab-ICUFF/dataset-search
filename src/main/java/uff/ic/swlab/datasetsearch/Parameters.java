@@ -38,7 +38,6 @@ public final class Parameters {
     }
 
     public Parameters(HttpServletRequest request) throws UnsupportedEncodingException, MalformedURLException, Exception {
-        String path = request.getPathInfo();
         lang = detectRequestedLang(request.getHeader("Accept"));
 
         query = URLDecoder.decode(request.getParameter("q"), "UTF-8");

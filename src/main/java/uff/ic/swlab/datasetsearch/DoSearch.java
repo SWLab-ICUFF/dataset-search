@@ -8,10 +8,12 @@ import java.net.URLEncoder;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 
 public class DoSearch extends HttpServlet {
@@ -128,7 +130,22 @@ public class DoSearch extends HttpServlet {
     }
 
     private Model readVoidURL(URL voidURL) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        Model aux = ModelFactory.createDefaultModel();
+        try {
+                Lang[] langs = {null, Lang.TURTLE, Lang.RDFXML, Lang.NTRIPLES, Lang.TRIG,
+                    Lang.NQUADS, Lang.JSONLD, Lang.RDFJSON, Lang.TRIX, Lang.RDFTHRIFT, Lang.NQ, Lang.N3, Lang.NT, Lang.TTL};
+                for (Lang lang : langs) {
+                    try{
+                         RDFDataMgr.read(aux, voidURL.toString(), lang);
+                         return aux;
+                    }catch(Throwable e){
+                        continue;
+                    }
+                }
+        }catch(Throwable e){
+            System.out.println("Error Read Void");
+        }
+        return aux;
     }
 
 }
