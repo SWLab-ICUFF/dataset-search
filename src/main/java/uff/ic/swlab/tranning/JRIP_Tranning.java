@@ -17,10 +17,13 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.Callable;
@@ -28,6 +31,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
@@ -219,9 +223,8 @@ public class JRIP_Tranning {
 
     }
 
-
     public static void createHeadWeka(String dataset, Map<String, Integer> indices_categories) throws FileNotFoundException, UnsupportedEncodingException {
-        PrintWriter writer = new PrintWriter(System.getProperty("user.dir")+"/dat/"+dataset+".arff");
+        PrintWriter writer = new PrintWriter(System.getProperty("user.dir") + "/dat/" + dataset + ".arff");
         //PrintWriter writer = new PrintWriter("/media/angelo/Novo volume/dat/" + dataset + ".arff");
         writer.print("@RELATION features");
         writer.print("\n\n\n");
@@ -255,7 +258,7 @@ public class JRIP_Tranning {
                 + "                                      ?ls void:objectsTarget <" + linkset + ">. \n"
                 + "                                   }}\n"
                 + "                          }";
-        
+
         QueryExecution qe = QueryExecutionFactory.sparqlService("http://localhost:8080/fuseki/DatasetDescriptions/sparql", qr);
         ResultSet rs = qe.execSelect();
         String aux = null;
@@ -263,14 +266,29 @@ public class JRIP_Tranning {
             QuerySolution soln = rs.nextSolution();
             aux = String.valueOf(soln.get("d1"));
         }
-        if(aux != null)
+        if (aux != null) {
             result = 1;
-        else
+        } else {
             result = 0;
-        
+        }
+
         qe.close();
         return result;
 
+    }
+
+    public static List<String> pickNRandomElements(List<String> list, int n, Random r) {
+        int length = list.size();
+
+        if (length < n) {
+            return null;
+        }
+
+        //We don't need to shuffle the whole list
+        for (int i = length - 1; i >= length - n; --i) {
+            Collections.swap(list, i, r.nextInt(i + 1));
+        }
+        return list.subList(length - n, length);
     }
 
     public static void main(String[] args) throws ClassNotFoundException, SQLException, FileNotFoundException, UnsupportedEncodingException, IOException, InterruptedException, ExecutionException {
@@ -293,63 +311,79 @@ public class JRIP_Tranning {
             System.out.println("Create head file for Dataset " + d);
             createHeadWeka(d, indices_categories);
         }
-        
+
         System.out.println("Getting Categories");
         Map<String, ArrayList<String>> category_datasets = new HashMap<String, ArrayList<String>>();
-        for(String dataset: datasets){
+        for (String dataset : datasets) {
             ArrayList<String> category_dataset = getCategoryDataset(dataset);
             category_datasets.put(dataset, category_dataset);
         }
-        
-        int counter = 0;
-        Float[] result;
-        ExecutorService pool = Executors.newFixedThreadPool(2);
-        Map<String, Float[]> all_vectors = new HashMap<String, Float[]>();
-        for (String dataset : datasets) {
-            if(dataset.equals("http://datahub.io/api/rest/dataset/rkb-explorer-acm")){
-                ArrayList<String> category_dataset = category_datasets.get(dataset);
-            System.out.println((++counter) + " Building vector for " + dataset);
-            Future <Float[]> result_t = pool.submit(new TaskBuildVector(indices_categories.size(), dataset, category_dataset, datasets, indices_categories));
-            all_vectors.put(dataset, result_t.get());
-                
-            }
-            
-            
-            
-        }
-
-        String dir = System.getProperty("user.dir")+"/dat";
+        String dir = System.getProperty("user.dir") + "/dat";
         File file = new File(dir);
         File afile[] = file.listFiles();
-        for (int j = 0; j < afile.length; j++) {
-            File arquivos = afile[j];
-            String filename = "http://datahub.io/api/rest/dataset/" + arquivos.getName().replace(".arff", "");
-            BufferedWriter bw = new BufferedWriter(new FileWriter(dir + "/" + arquivos.getName(), true));
-            System.out.println(filename);
-            Set<String> keys = all_vectors.keySet();
-            for (Iterator<String> iterator = keys.iterator(); iterator.hasNext();) {
-                String key = iterator.next();
-                if (!key.equals(filename)) {
-                    Float vetor[] = all_vectors.get(key);
+
+        for (String dataset : datasets) {
+            System.out.println(dataset);
+            int num_repre = 0;
+            ArrayList<String> categories_dataset = category_datasets.get(dataset);
+            if (categories_dataset.size() > 12) {
+                while (num_repre <= 10) {
+                    Float[] vetor = new Float[indices_categories.size()];
+                    List<String> set = pickNRandomElements(categories_dataset, 12, ThreadLocalRandom.current());
+                    for (String c : set) {
+                        Arrays.fill(vetor, new Float(0));
+                        float value_tf = TF(c, dataset);
+                        float value_idf = idf(c, datasets);
+                        float value_tf_idf = value_tf * value_idf;
+                        int index = indices_categories.get(c);
+                        vetor[index] = value_tf_idf;
+                    }
+                    for (int j = 0; j < afile.length; j++) {
+                        File arquivos = afile[j];
+                        String filename = "http://datahub.io/api/rest/dataset/" + arquivos.getName().replace(".arff", "");
+                        BufferedWriter bw = new BufferedWriter(new FileWriter(dir + "/" + arquivos.getName(), true));
+                        for (int i = 0; i < vetor.length; i++) {
+                            bw.write(String.valueOf(vetor[i]) + ",");
+                        }
+                        String v_linkset[] = dataset.split("/");
+                        int size = v_linkset.length;
+                        String linkset = "http://swlab.ic.uff.br/resource/" + v_linkset[size - 1];
+                        int class_ = getClass(filename, linkset);
+                        bw.write(String.valueOf(class_));
+                        bw.write("\n");
+                        bw.close();
+                    }
+                    num_repre++;
+                }
+            } else {
+                Float[] vetor = new Float[indices_categories.size()];
+                for (String c : categories_dataset) {
+                    Arrays.fill(vetor, new Float(0));
+                    float value_tf = TF(c, dataset);
+                    float value_idf = idf(c, datasets);
+                    float value_tf_idf = value_tf * value_idf;
+                    int index = indices_categories.get(c);
+                    vetor[index] = value_tf_idf;
+                }
+                for (int j = 0; j < afile.length; j++) {
+                    File arquivos = afile[j];
+                    String filename = "http://datahub.io/api/rest/dataset/" + arquivos.getName().replace(".arff", "");
+                    BufferedWriter bw = new BufferedWriter(new FileWriter(dir + "/" + arquivos.getName(), true));
                     for (int i = 0; i < vetor.length; i++) {
                         bw.write(String.valueOf(vetor[i]) + ",");
                     }
-                    String v_linkset[] = key.split("/");
+                    String v_linkset[] = dataset.split("/");
                     int size = v_linkset.length;
                     String linkset = "http://swlab.ic.uff.br/resource/" + v_linkset[size - 1];
                     int class_ = getClass(filename, linkset);
-                    if(class_ == 1)
-                        System.out.println(class_);
-                        
                     bw.write(String.valueOf(class_));
                     bw.write("\n");
-
+                    bw.close();
                 }
 
             }
-
-            bw.close();
         }
+
     }
 
 }

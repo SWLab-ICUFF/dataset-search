@@ -191,20 +191,8 @@ public class DoSearch extends HttpServlet {
         }
         conn.close();
         Model model = ModelFactory.createDefaultModel();
-
-        //teste URI BANNER
-        String personURI = "http://somewhere/JohnSmith";
-        String givenName = "John";
-        String familyName = "Smith";
-        String fullName = givenName + " " + familyName;
-        Resource johnSmith = model.createResource(personURI)
-                .addProperty(VCARD.FN, fullName)
-                .addProperty(VCARD.N,
-                        model.createResource()
-                        .addProperty(VCARD.Given, givenName)
-                        .addProperty(VCARD.Family, familyName));
         model.close();
-        //FIM TESTE
+     
         return model;
     }
 
