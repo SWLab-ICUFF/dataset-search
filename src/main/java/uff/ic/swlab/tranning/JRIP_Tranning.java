@@ -219,18 +219,6 @@ public class JRIP_Tranning {
 
     }
 
-    public static void ArmazenaTFIDF(String feature, String dataset, float tf_idf, Connection conn) throws ClassNotFoundException, SQLException {
-        if (conn != null) {
-            String query = "INSERT INTO tf_idf VALUES (?,?,?) ";
-            PreparedStatement stm = conn.prepareStatement(query);
-            stm.setString(1, feature);
-            stm.setString(2, dataset);
-            stm.setFloat(3, tf_idf);
-            stm.executeUpdate();
-
-        }
-
-    }
 
     public static void createHeadWeka(String dataset, Map<String, Integer> indices_categories) throws FileNotFoundException, UnsupportedEncodingException {
         PrintWriter writer = new PrintWriter(System.getProperty("user.dir")+"/dat/"+dataset+".arff");
