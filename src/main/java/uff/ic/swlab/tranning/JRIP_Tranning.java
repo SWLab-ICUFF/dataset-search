@@ -247,6 +247,37 @@ public class JRIP_Tranning {
         writer.print("\n");
         writer.close();
     }
+    
+    public static int verificaDataset(String dataset){
+        int result = 0;
+        String qr = "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\n"
+                + "PREFIX void: <http://rdfs.org/ns/void#>\n"
+                + "select distinct ?d1\n"
+                + "			from named <http://datahub.io/api/rest/dataset/rkb-explorer-acm>\n"
+                + "      where {{graph ?d1 {?d2 void:subset ?ls.\n"
+                + "                         ?ls void:objectsTarget ?feature.\n"
+                + "        				 ?ls void:triples ?frequency. \n"
+                + "               			?d2 void:triples ?datasetSize.\n"
+                + "      									   	 							 \n"
+                + "    }}} ";
+        QueryExecution qe = QueryExecutionFactory.sparqlService("http://localhost:8080/fuseki/DatasetDescriptions/sparql", qr);
+        ResultSet rs = qe.execSelect();
+        String aux = null;
+        while (rs.hasNext()) {
+            QuerySolution soln = rs.nextSolution();
+            aux = String.valueOf(soln.get("d1"));
+        }
+        if (aux != null) {
+            result = 1;
+        } else {
+            result = 0;
+        }
+
+        qe.close();
+        return result;
+        
+        
+    }
 
     public static int getClass(String dataset, String linkset) {
         int result = 0;
@@ -303,6 +334,12 @@ public class JRIP_Tranning {
 
         System.out.println("Get All Datasets");
         ArrayList<String> datasets = GetDatasets();
+        for(String dataset: datasets){
+            int result = verificaDataset(dataset);
+            if(result != 0)
+                datasets.remove(dataset);
+        }
+        
         for (String dataset : datasets) {
             System.out.println(dataset);
             String v_aux[] = dataset.split("/");
@@ -327,9 +364,9 @@ public class JRIP_Tranning {
             int num_repre = 0;
             ArrayList<String> categories_dataset = category_datasets.get(dataset);
             if (categories_dataset.size() > 12) {
-                while (num_repre <= 10) {
+                while (num_repre <= 2) {
                     Float[] vetor = new Float[indices_categories.size()];
-                    List<String> set = pickNRandomElements(categories_dataset, 12, ThreadLocalRandom.current());
+                    List<String> set = pickNRandomElements(categories_dataset, 20, ThreadLocalRandom.current());
                     for (String c : set) {
                         Arrays.fill(vetor, new Float(0));
                         float value_tf = TF(c, dataset);

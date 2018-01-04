@@ -42,6 +42,8 @@ public class Bayesian_tranning {
                 + "                     select distinct ?feature\n"
                 + "                          where {{graph ?d1 {?d2 void:subset ?ls.\n"
                 + "                                     ?ls void:objectsTarget ?feature. \n"
+                + "        									?ls void:triples ?frequency. \n"
+                + "                							?d2 void:triples ?datasetSize\n"
                 + "                                   }}\n"
                 + "                                }";
         QueryExecution qe = QueryExecutionFactory.sparqlService("http://localhost:8080/fuseki/DatasetDescriptions/sparql", qr);
@@ -59,14 +61,16 @@ public class Bayesian_tranning {
 
     public static ArrayList<String> GetDatasets() {
         ArrayList<String> datasets = new ArrayList<>();
-        String qr = "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> \n"
+        String qr = "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\n"
                 + "PREFIX void: <http://rdfs.org/ns/void#>\n"
-                + "     select distinct ?d1\n"
-                + "          where {{graph ?d1 {?d2 void:subset ?ls.\n"
-                + "                                      ?ls void:objectsTarget ?feature.\n"
-                + "                   }} \n"
-                + "                FILTER regex(str(?d1),\"datahub\")\n"
-                + "                                }";
+                + "select distinct ?d1\n"
+                + "                          where {{graph ?d1 {?d2 void:subset ?ls.\n"
+                + "                                             ?ls void:objectsTarget ?feature.\n"
+                + "        									?ls void:triples ?frequency. \n"
+                + "                							?d2 void:triples ?datasetSize\n"
+                + "                                   }} \n"
+                + "                                FILTER regex(str(?d1),\"datahub\")\n"
+                + "                                                }";
         QueryExecution qe = QueryExecutionFactory.sparqlService("http://localhost:8080/fuseki/DatasetDescriptions/sparql", qr);
         ResultSet rs = qe.execSelect();
         while (rs.hasNext()) {
@@ -132,29 +136,51 @@ public class Bayesian_tranning {
        return result;
     }
     
-    public static void InsertProb(String feature, String dataset, double prob, Connection conn) throws ClassNotFoundException, SQLException{
+    public static void InsertProb(int feature, int dataset, double prob, Connection conn) throws ClassNotFoundException, SQLException{
         if (conn != null) {
             String query = "INSERT INTO prob VALUES (?,?,?) ";
             PreparedStatement stm = conn.prepareStatement(query);
-            stm.setString(1, feature);
-            stm.setString(2, dataset);
+            stm.setInt(1, feature);
+            stm.setInt(2, dataset);
             stm.setDouble(3, prob);
             stm.executeUpdate();
-            
+            stm.close();
+        }
+        
+        
+    }
+    
+    public static void InsertProbContext(int dataset, double prob, Connection conn) throws ClassNotFoundException, SQLException{
+        if (conn != null) {
+            String query = "INSERT INTO prob_global VALUES (?,?) ";
+            PreparedStatement stm = conn.prepareStatement(query);
+            stm.setInt(1, dataset);
+            stm.setDouble(2, prob);
+            stm.executeUpdate();
+            stm.close();
         }
         
     }
     
-    public static void InsertProbContext(String dataset, double prob, Connection conn) throws ClassNotFoundException, SQLException{
+    public static void InsertIndiceDataset(String dataset, int id, Connection conn) throws SQLException{
         if (conn != null) {
-            String query = "INSERT INTO prob_global VALUES (?,?) ";
+            String query = "INSERT INTO id_dataset VALUES (?,?) ";
             PreparedStatement stm = conn.prepareStatement(query);
-            stm.setString(1, dataset);
-            stm.setDouble(2, prob);
+            stm.setInt(1, id);
+            stm.setString(2, dataset);
             stm.executeUpdate();
-            
+            stm.close();
         }
-        
+    }
+     public static void InsertIndiceFeature(String feature, int id, Connection conn) throws SQLException{
+        if (conn != null) {
+            String query = "INSERT INTO id_feature VALUES (?,?) ";
+            PreparedStatement stm = conn.prepareStatement(query);
+            stm.setInt(1, id);
+            stm.setString(2, feature);
+            stm.executeUpdate();
+            stm.close();
+        }
     }
     
     public static int CountLS(String dataset) {
@@ -198,14 +224,62 @@ public class Bayesian_tranning {
         qe.close();
         return result;
     }
+    public static int GetIndexDataset(String dataset, Connection conn) throws SQLException{
+        int result = 0;
+        String qr = "SELECT id FROM id_dataset WHERE dataset = ?";
+        PreparedStatement stm = conn.prepareStatement(qr);
+        stm.setString(1, dataset);
+        java.sql.ResultSet rs = stm.executeQuery();
+        while(rs.next()){
+            result = rs.getInt("id");
+        }
+        rs.close();
+        stm.close();
+        return result;
+    }
+     public static int GetIndexFeature(String feature, Connection conn) throws SQLException{
+        int result = 0;
+        String qr = "SELECT id FROM id_feature WHERE feature = ?";
+        PreparedStatement stm = conn.prepareStatement(qr);
+        stm.setString(1, feature);
+        java.sql.ResultSet rs = stm.executeQuery();
+        while(rs.next()){
+            result = rs.getInt("id");
+        }
+        rs.close();
+        stm.close();
+        return result;
+    }
 
     public static void main(String[] args) throws ClassNotFoundException, SQLException {
-        System.out.println("Calculing probabilities...");
         Connection conn = ConnectionPost.Conectar();
-        System.out.println("Get all datasets");
+        System.out.println("Create indices");
         ArrayList<String> datasets = GetDatasets();
+        int id = 1;
+        for(String dataset: datasets){
+            InsertIndiceDataset(dataset, id, conn);
+            id = id + 1;
+        }
         ArrayList<String> all_linksets = GetAllLinksets();
-        System.out.println("Get all features");
+        id = 1;
+        for(String feature: all_linksets){
+            InsertIndiceFeature(feature, id, conn);
+            id = id + 1;
+        }
+        System.out.println("Getting Indices");
+        Map<String, Integer> indices_dataset = new HashMap<String, Integer>();
+        for(String dataset: datasets){
+            int index = GetIndexDataset(dataset, conn);
+            indices_dataset.put(dataset, index);
+        }
+        Map<String, Integer> indices_feature = new HashMap<String, Integer>();
+        for(String feature: all_linksets){
+            int index = GetIndexFeature(feature, conn);
+            indices_feature.put(feature, index);
+        }
+        
+        System.out.println("Calculing probabilities...");
+        
         Map<List<String>, Double> all_probabilities = new HashMap<List<String>, Double>();
         for (String linkset : all_linksets) {
             System.out.println("Calculing probabilities feature"+linkset);
@@ -243,7 +317,9 @@ public class Bayesian_tranning {
         Set<List<String>> chaves = all_probabilities.keySet();
         for (Iterator<List<String>> iterator = chaves.iterator(); iterator.hasNext();){
             List<String> chave = iterator.next();
-            InsertProb(chave.get(0), chave.get(1), all_probabilities.get(chave), conn);
+            int index_feature = indices_feature.get(chave.get(0));
+            int index_dataset = indices_dataset.get(chave.get(1));
+            InsertProb(index_feature, index_dataset, all_probabilities.get(chave), conn);
         }
             
         
@@ -263,7 +339,8 @@ public class Bayesian_tranning {
                 prob = numerador_prob_global / demoninador_prob_global;
             else
                 prob = 0;
-            InsertProbContext(dataset,prob, conn);
+            int index_dataset = indices_dataset.get(dataset);
+            InsertProbContext(index_dataset,prob,conn);
         }
         conn.close();
     }

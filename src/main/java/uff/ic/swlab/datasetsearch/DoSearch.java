@@ -151,48 +151,46 @@ public class DoSearch extends HttpServlet {
             String[] v_aux = feature.split("/");
             int size = v_aux.length;
             String feature_ = "http://swlab.ic.uff.br/resource/" + v_aux[size - 1];
-            System.out.println(feature_);
             features.add(feature_);
         }
         qe.close();
         ArrayList<String> datasets = Bayesian_tranning.GetDatasets();
         Map<String, Double> rank = new HashMap<String, Double>();
         for (String dataset : datasets) {
-
-            double somatorio = 0;
-            double result_dataset = 0;
-            double log_prob_global = 0;
-            int flag = 0;
-            float prob_global = BayesianClassifier.GetProbabilityGlobal(dataset, conn);
-            try {
-                log_prob_global = Math.log(prob_global);
-            } catch (Throwable e) {
-                result_dataset = Double.NEGATIVE_INFINITY;
-                System.out.println(result_dataset);
-                flag = 1;
-            }
-            if (flag == 0) {
-                for (String feature : features) {
-                    float prob = BayesianClassifier.GetProbability(feature, dataset, conn);
-                    double result_log = 0;
-                    try {
-                        result_log = Math.log(prob);
-                    } catch (Throwable e) {
-                        //result_log = Double.NEGATIVE_INFINITY; //de 20 linksets 19 tem probabilidades e 1 não tem....
-                        continue;
-                    }
-                    somatorio = somatorio + result_log;
+          //  if (dataset.equals("http://datahub.io/api/rest/dataset/rkb-explorer-acm")) {
+                double somatorio = 0;
+                double result_dataset = 0;
+                double log_prob_global = 0;
+                int flag = 0;
+                float prob_global = BayesianClassifier.GetProbabilityGlobal(dataset, conn);
+                try {
+                    log_prob_global = Math.log(prob_global);
+                } catch (Throwable e) {
+                    result_dataset = Double.NEGATIVE_INFINITY;
+                    System.out.println(result_dataset);
+                    flag = 1;
                 }
-                result_dataset = somatorio + log_prob_global;
-                System.out.println(result_dataset);
+                if (flag == 0) {
+                    for (String feature : features) {
+                        float prob = BayesianClassifier.GetProbability(feature, dataset, conn);
+                        double result_log = 0;
+                        try {
+                            result_log = Math.log(prob);
+                        } catch (Throwable e) {
+                            //result_log = Double.NEGATIVE_INFINITY; //de 20 linksets 19 tem probabilidades e 1 não tem....
+                            continue;
+                        }
+                        somatorio = somatorio + result_log;
+                    }
+                    result_dataset = somatorio + log_prob_global;
+                    System.out.println(result_dataset);
 
-            }
+                }
+          //  }
 
         }
         conn.close();
         Model model = ModelFactory.createDefaultModel();
-        model.close();
-     
         return model;
     }
 
