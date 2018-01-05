@@ -9,7 +9,10 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -26,6 +29,8 @@ import org.apache.jena.vocabulary.VCARD;
 import uff.ic.swlab.connection.ConnectionPost;
 import uff.ic.swlab.tranning.Bayesian_tranning;
 import uff.swlab.classifier.BayesianClassifier;
+import static uff.swlab.classifier.BayesianClassifier.GetFeatures;
+import static uff.swlab.classifier.BayesianClassifier.GetIndices;
 
 public class DoSearch extends HttpServlet {
 
@@ -132,10 +137,15 @@ public class DoSearch extends HttpServlet {
         return model;
     }
 
-    private Model doVoidSearchForSelect(URL voidURL, Integer offset, Integer limit) throws SQLException {
+    private Model doVoidSearchForSelect(URL voidURL, Integer offset, Integer limit) throws SQLException, IOException {
+        Map<String, Double> rank = new HashMap<>();
         ArrayList<String> features = new ArrayList<>();
         Connection conn = ConnectionPost.Conectar();
         Model voID = readVoidURL(voidURL);
+
+        Map<String, Integer> indices_datasets = GetIndices(conn);
+        Map<String, Integer> indices_features = GetFeatures(conn);
+
         String qr = "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\n"
                 + "PREFIX void: <http://rdfs.org/ns/void#>\n"
                 + "                      select distinct  ?linkset\n"
@@ -154,49 +164,46 @@ public class DoSearch extends HttpServlet {
             features.add(feature_);
         }
         qe.close();
-        ArrayList<String> datasets = Bayesian_tranning.GetDatasets();
-        Map<String, Double> rank = new HashMap<String, Double>();
-        for (String dataset : datasets) {
-          //  if (dataset.equals("http://datahub.io/api/rest/dataset/rkb-explorer-acm")) {
-                double somatorio = 0;
-                double result_dataset = 0;
-                double log_prob_global = 0;
-                int flag = 0;
-                float prob_global = BayesianClassifier.GetProbabilityGlobal(dataset, conn);
-                try {
-                    log_prob_global = Math.log(prob_global);
-                } catch (Throwable e) {
-                    result_dataset = Double.NEGATIVE_INFINITY;
-                    System.out.println(result_dataset);
-                    flag = 1;
-                }
-                if (flag == 0) {
-                    for (String feature : features) {
-                        float prob = BayesianClassifier.GetProbability(feature, dataset, conn);
-                        double result_log = 0;
-                        try {
-                            result_log = Math.log(prob);
-                        } catch (Throwable e) {
-                            //result_log = Double.NEGATIVE_INFINITY; //de 20 linksets 19 tem probabilidades e 1 não tem....
-                            continue;
-                        }
-                        somatorio = somatorio + result_log;
+
+        Set<String> datasets = indices_datasets.keySet();
+        for (Iterator<String> iterator = datasets.iterator(); iterator.hasNext();) {
+            String chave = iterator.next();
+            double somatorio = 0;
+            double result_dataset = 0;
+            double log_prob_global = 0;
+            int flag = 0;
+            float prob_global = BayesianClassifier.GetProbabilityGlobal(indices_datasets.get(chave), conn);
+            try {
+                log_prob_global = Math.log(prob_global);
+            } catch (Throwable e) {
+                result_dataset = Double.NEGATIVE_INFINITY;
+                rank.put(chave, 0.0);
+                flag = 1;
+            }
+            if (flag == 0) {
+                for (String feature : features) {
+                    float prob = BayesianClassifier.GetProbability(indices_features.get(feature), indices_datasets.get(chave), conn);
+                    double result_log = 0;
+                    try {
+                        result_log = Math.log(prob);
+                    } catch (Throwable e) {
+                        //result_log = Double.NEGATIVE_INFINITY; //de 20 linksets 19 tem probabilidades e 1 não tem....
+                        continue;
                     }
-                    result_dataset = somatorio + log_prob_global;
-                    System.out.println(result_dataset);
-
+                    somatorio = somatorio + result_log;
                 }
-          //  }
-
+                result_dataset = somatorio + log_prob_global;
+                rank.put(chave, result_dataset);
+            }
         }
         conn.close();
-        Model model = ModelFactory.createDefaultModel();
-        return model;
+      
+        Model model_result = BayesianClassifier.CreateRank(rank, limit);
+        return model_result;
     }
 
     private Model doVoidSearchForScan(URL voidURL, Integer offset, Integer limit) {
         Model voID = readVoidURL(voidURL);
-
         Model model = ModelFactory.createDefaultModel();
         return model;
     }
