@@ -198,7 +198,7 @@ public class DoSearch extends HttpServlet {
         }
         conn.close();
       
-        Model model_result = BayesianClassifier.CreateRank(rank, limit);
+        Model model_result = BayesianClassifier.CreateRank(rank, limit, offset);
         return model_result;
     }
 
