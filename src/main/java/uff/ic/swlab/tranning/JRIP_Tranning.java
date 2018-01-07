@@ -321,6 +321,7 @@ public class JRIP_Tranning {
         }
         return list.subList(length - n, length);
     }
+    
 
     public static void main(String[] args) throws ClassNotFoundException, SQLException, FileNotFoundException, UnsupportedEncodingException, IOException, InterruptedException, ExecutionException {
         Map<String, Integer> indices_categories = new HashMap<String, Integer>();
@@ -363,8 +364,8 @@ public class JRIP_Tranning {
             System.out.println(dataset);
             int num_repre = 0;
             ArrayList<String> categories_dataset = category_datasets.get(dataset);
-            if (categories_dataset.size() > 12) {
-                while (num_repre <= 2) {
+            if (categories_dataset.size() > 20) {
+                while (num_repre <= 12) {
                     Float[] vetor = new Float[indices_categories.size()];
                     List<String> set = pickNRandomElements(categories_dataset, 20, ThreadLocalRandom.current());
                     for (String c : set) {
