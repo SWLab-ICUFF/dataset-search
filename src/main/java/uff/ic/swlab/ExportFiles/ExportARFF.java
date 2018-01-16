@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package uff.ic.swlab.tranning;
+package uff.ic.swlab.ExportFiles;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -48,13 +48,14 @@ import static uff.ic.swlab.tranning.Bayesian_tranning.InsertProb;
  *
  * @author angelo
  */
-public class JRIP_Tranning {
+public class ExportARFF {
 
-    public static ArrayList<String> getCategory() {
+    public static ArrayList<String> getCategory(String dataset) {
         ArrayList<String> categories = new ArrayList<>();
         String qr = "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> \n"
                 + "PREFIX void: <http://rdfs.org/ns/void#>\n"
                 + "   select distinct ?feature \n"
+                +"from named <"+dataset+">"
                 + "		where {\n"
                 + "  				{graph ?d1 {?d2 void:subset ?uri_random.\n"
                 + "                       			?uri_random void:triples ?frequency.\n"
@@ -62,7 +63,7 @@ public class JRIP_Tranning {
                 + "              		  			optional {?d2 void:triples ?datasetSize} \n"
                 + "                		      }}\n"
                 + "		\n"
-                + "		} ";
+                + "		} ORDER BY DESC(?frequency) Limit 500 ";
         QueryExecution qe = QueryExecutionFactory.sparqlService("http://localhost:8080/fuseki/DatasetDescriptions/sparql", qr);
         ResultSet rs = qe.execSelect();
         while (rs.hasNext()) {
@@ -102,16 +103,14 @@ public class JRIP_Tranning {
         ArrayList<String> datasets = new ArrayList<>();
         String qr = "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\n"
                 + "PREFIX void: <http://rdfs.org/ns/void#>\n"
-                + "                                     select distinct ?d1\n"
-                + "                                          where {{graph ?d1 {\n"
-                + "      														?d2 void:subset ?uri_random.\n"
-                + "      														?uri_random void:triples ?frequency.\n"
-                + "      														?uri_random <http://purl.org/dc/terms/subject> ?feature \n"
-                + "      														optional {?d2 void:triples ?datasetSize}	\n"
-                + "                                                   }}\n"
-                + "  											FILTER regex(str(?d1),\"datahub\")\n"
-                + "                 \n"
-                + "                                                     }";
+                + "select distinct ?d1\n"
+                + "                          where {{graph ?d1 {?d2 void:subset ?ls.\n"
+                + "                                             ?ls void:objectsTarget ?feature.\n"
+                + "        									?ls void:triples ?frequency. \n"
+                + "                							?d2 void:triples ?datasetSize\n"
+                + "                                   }} \n"
+                + "                                FILTER regex(str(?d1),\"datahub\")\n"
+                + "                                                }";
         QueryExecution qe = QueryExecutionFactory.sparqlService("http://localhost:8080/fuseki/DatasetDescriptions/sparql", qr);
         ResultSet rs = qe.execSelect();
         while (rs.hasNext()) {
@@ -325,20 +324,17 @@ public class JRIP_Tranning {
 
     public static void main(String[] args) throws ClassNotFoundException, SQLException, FileNotFoundException, UnsupportedEncodingException, IOException, InterruptedException, ExecutionException {
         Map<String, Integer> indices_categories = new HashMap<String, Integer>();
-        ArrayList<String> categories = getCategory();
         Integer indice = 0;
         System.out.println("Assigning Indices...");
-        for (String category : categories) {
-            indices_categories.put(category, indice);
-            indice = indice + 1;
-        }
-
-        System.out.println("Get All Datasets");
         ArrayList<String> datasets = GetDatasets();
         for(String dataset: datasets){
-            int result = verificaDataset(dataset);
-            if(result != 0)
-                datasets.remove(dataset);
+            ArrayList<String> categories = getCategory(dataset);
+            for(String category: categories){
+                if(!indices_categories.containsKey(category)){
+                    indice = indice + 1;
+                    indices_categories.put(category, indice);
+                }
+            }
         }
         
         for (String dataset : datasets) {
@@ -364,7 +360,7 @@ public class JRIP_Tranning {
             System.out.println(dataset);
             int num_repre = 0;
             ArrayList<String> categories_dataset = category_datasets.get(dataset);
-            if (categories_dataset.size() > 20) {
+            if (categories_dataset.size() > 60) {
                 while (num_repre <= 12) {
                     Float[] vetor = new Float[indices_categories.size()];
                     List<String> set = pickNRandomElements(categories_dataset, 20, ThreadLocalRandom.current());
