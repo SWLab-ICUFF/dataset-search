@@ -349,7 +349,7 @@ public class ExportARFF {
         System.out.println("Getting Categories");
         Map<String, ArrayList<String>> category_datasets = new HashMap<String, ArrayList<String>>();
         for (String dataset : datasets) {
-            ArrayList<String> category_dataset = getCategoryDataset(dataset);
+            ArrayList<String> category_dataset = getCategory(dataset);
             category_datasets.put(dataset, category_dataset);
         }
         String dir = System.getProperty("user.dir") + "/dat";
@@ -363,7 +363,7 @@ public class ExportARFF {
             if (categories_dataset.size() > 60) {
                 while (num_repre <= 12) {
                     Float[] vetor = new Float[indices_categories.size()];
-                    List<String> set = pickNRandomElements(categories_dataset, 20, ThreadLocalRandom.current());
+                    List<String> set = pickNRandomElements(categories_dataset, 60, ThreadLocalRandom.current());
                     for (String c : set) {
                         Arrays.fill(vetor, new Float(0));
                         float value_tf = TF(c, dataset);
