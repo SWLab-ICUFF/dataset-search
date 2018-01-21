@@ -344,6 +344,7 @@ public class ExportARFF {
             String d = v_aux[size - 1];
             System.out.println("Create head file for Dataset " + d);
             createHeadWeka(d, indices_categories);
+            break;
         }
 
         System.out.println("Getting Categories");
@@ -363,9 +364,9 @@ public class ExportARFF {
             if (categories_dataset.size() > 60) {
                 while (num_repre <= 12) {
                     Float[] vetor = new Float[indices_categories.size()];
-                    List<String> set = pickNRandomElements(categories_dataset, 60, ThreadLocalRandom.current());
+                    Arrays.fill(vetor, new Float(0));
+                    List<String> set = pickNRandomElements(categories_dataset, 50, ThreadLocalRandom.current());
                     for (String c : set) {
-                        Arrays.fill(vetor, new Float(0));
                         float value_tf = TF(c, dataset);
                         float value_idf = idf(c, datasets);
                         float value_tf_idf = value_tf * value_idf;
@@ -375,44 +376,47 @@ public class ExportARFF {
                     for (int j = 0; j < afile.length; j++) {
                         File arquivos = afile[j];
                         String filename = "http://datahub.io/api/rest/dataset/" + arquivos.getName().replace(".arff", "");
-                        BufferedWriter bw = new BufferedWriter(new FileWriter(dir + "/" + arquivos.getName(), true));
+                        //BufferedWriter bw = new BufferedWriter(new FileWriter(dir + "/" + arquivos.getName(), true));
+                        PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(dir + "/" + arquivos.getName(), true)));
                         for (int i = 0; i < vetor.length; i++) {
-                            bw.write(String.valueOf(vetor[i]) + ",");
+                            out.write(String.valueOf(vetor[i]) + ",");
                         }
                         String v_linkset[] = dataset.split("/");
                         int size = v_linkset.length;
                         String linkset = "http://swlab.ic.uff.br/resource/" + v_linkset[size - 1];
                         int class_ = getClass(filename, linkset);
-                        bw.write(String.valueOf(class_));
-                        bw.write("\n");
-                        bw.close();
+                        out.write(String.valueOf(class_));
+                        out.write("\n");
+                        out.close();
+                      
                     }
                     num_repre++;
                 }
-            } else {
-                Float[] vetor = new Float[indices_categories.size()];
+
+            } else { 
+                Float[] vetor_ = new Float[indices_categories.size()];
+                Arrays.fill(vetor_, new Float(0));
                 for (String c : categories_dataset) {
-                    Arrays.fill(vetor, new Float(0));
                     float value_tf = TF(c, dataset);
                     float value_idf = idf(c, datasets);
                     float value_tf_idf = value_tf * value_idf;
                     int index = indices_categories.get(c);
-                    vetor[index] = value_tf_idf;
+                    vetor_[index] = value_tf_idf;
                 }
                 for (int j = 0; j < afile.length; j++) {
                     File arquivos = afile[j];
                     String filename = "http://datahub.io/api/rest/dataset/" + arquivos.getName().replace(".arff", "");
-                    BufferedWriter bw = new BufferedWriter(new FileWriter(dir + "/" + arquivos.getName(), true));
-                    for (int i = 0; i < vetor.length; i++) {
-                        bw.write(String.valueOf(vetor[i]) + ",");
+                    PrintWriter out_ = new PrintWriter(new BufferedWriter(new FileWriter(dir + "/" + arquivos.getName(), true)));
+                    for (Float vetor_1 : vetor_) {
+                        out_.write(String.valueOf(vetor_1 + ","));
                     }
                     String v_linkset[] = dataset.split("/");
                     int size = v_linkset.length;
                     String linkset = "http://swlab.ic.uff.br/resource/" + v_linkset[size - 1];
                     int class_ = getClass(filename, linkset);
-                    bw.write(String.valueOf(class_));
-                    bw.write("\n");
-                    bw.close();
+                    out_.write(String.valueOf(class_));
+                    out_.write("\n");
+                    out_.close();                    
                 }
 
             }
