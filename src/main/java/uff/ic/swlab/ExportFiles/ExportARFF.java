@@ -372,6 +372,7 @@ public class ExportARFF {
                         float value_tf_idf = value_tf * value_idf;
                         int index = indices_categories.get(c);
                         vetor[index] = value_tf_idf;
+                        
                     }
                     for (int j = 0; j < afile.length; j++) {
                         File arquivos = afile[j];
