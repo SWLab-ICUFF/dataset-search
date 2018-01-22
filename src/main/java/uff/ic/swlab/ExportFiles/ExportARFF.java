@@ -344,7 +344,7 @@ public class ExportARFF {
             String d = v_aux[size - 1];
             System.out.println("Create head file for Dataset " + d);
             createHeadWeka(d, indices_categories);
-            break;
+          
         }
 
         System.out.println("Getting Categories");
