@@ -21,18 +21,33 @@ public class ExportRules {
     
     public static void main(String[] args) throws Exception {
         String dir_rules = System.getProperty("user.dir") + "/dat";
-        String dir = "/home/angelo/Repositorio_Codigos/dataset-search/files";
+        String dir = "/home/angelo/teste/";
         File file = new File(dir);
         File afile[] = file.listFiles();
-        ExecutorService pool = Executors.newWorkStealingPool(2);
+
         for (int j = 0; j < afile.length; j++) {
             File arquivos = afile[j];
-            pool.submit(new ExportRulesTask(dir_rules, arquivos));
+            System.out.println(arquivos.toString());
+            ArffLoader loader = new ArffLoader();
+            loader.setFile(new File(arquivos.toString())); 
+            loader.getStructure();
+            
+            String[] vetor = arquivos.toString().split("/");
+            int size = vetor.length;
+            String name = vetor[size -1].replace(".arff", "");
+            
+            
+            Instances trainingset = loader.getDataSet();
+            int classIndex = trainingset.numAttributes() - 1;
+            trainingset.setClassIndex(classIndex);
+            
+            JRip jrip = new JRip();
+            jrip.buildClassifier(trainingset);
+            weka.core.SerializationHelper.write(dir_rules+"/"+name+".model", jrip);
+            
         }
         
-        pool.shutdown();
-        System.out.println("Waiting for remaining tasks...");
-        pool.awaitTermination(1, DAYS);
+
     }
     
 }

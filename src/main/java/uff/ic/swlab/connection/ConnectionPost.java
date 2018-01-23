@@ -18,7 +18,7 @@ public class ConnectionPost {
         Connection connection = null;
         String jdbcurl = "jdbc:postgresql://localhost:5432/tranning_base";
         String username = "postgres";
-        String password = "fluminense";
+        String password = "123";
         try{
             Class.forName("org.postgresql.Driver");
             Connection jdbcConnection = DriverManager.getConnection(jdbcurl, username, password);
