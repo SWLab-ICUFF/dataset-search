@@ -1,5 +1,6 @@
 package uff.ic.swlab.datasetsearch;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
@@ -8,6 +9,7 @@ import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -20,17 +22,22 @@ import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
+import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.vocabulary.VCARD;
+import static uff.ic.swlab.ExportFiles.ExportARFF.GetDatasets;
+import static uff.ic.swlab.ExportFiles.ExportARFF.getCategory;
+import static uff.ic.swlab.ExportFiles.ExportARFF.idf;
 import uff.ic.swlab.connection.ConnectionPost;
 import uff.ic.swlab.tranning.Bayesian_tranning;
 import uff.swlab.classifier.BayesianClassifier;
 import static uff.swlab.classifier.BayesianClassifier.GetFeatures;
 import static uff.swlab.classifier.BayesianClassifier.GetIndices;
+import uff.swlab.classifier.JRIP_Classifier;
 
 public class DoSearch extends HttpServlet {
 
@@ -202,9 +209,52 @@ public class DoSearch extends HttpServlet {
         return model_result;
     }
 
-    private Model doVoidSearchForScan(URL voidURL, Integer offset, Integer limit) {
+    private Model doVoidSearchForScan(URL voidURL, Integer offset, Integer limit) throws FileNotFoundException, Exception {
         Model voID = readVoidURL(voidURL);
-        Model model = ModelFactory.createDefaultModel();
+        
+        Integer indice = 0;
+        Map<String, Integer> indices_categories = new HashMap<String, Integer>();
+        ArrayList<String> datasets = GetDatasets();
+        for(String dataset: datasets){
+            ArrayList<String> categories = getCategory(dataset);
+            for(String category: categories){
+                if(!indices_categories.containsKey(category)){
+                    indice = indice + 1;
+                    indices_categories.put(category, indice);
+                }
+            }
+        }
+        
+        Float[] vetor = new Float[indices_categories.size()];
+        Arrays.fill(vetor, new Float(0));
+        
+        String qr = "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> \n"
+                + "PREFIX void: <http://rdfs.org/ns/void#>\n"
+                + "Select distinct ?feature ?frequency\n"
+                + "  where{\n"
+                + "    	?d2 void:subset ?uri_random.\n"
+                + "    	?uri_random <http://purl.org/dc/terms/subject> ?feature. \n"
+                + "   		?uri_random void:triples ?frequency.\n"
+                + "  }";
+        QueryExecution qe = QueryExecutionFactory.create(qr, voID);
+        ResultSet rs = qe.execSelect();
+        while (rs.hasNext()) {
+            QuerySolution soln = rs.nextSolution();
+            String feature = String.valueOf(soln.get("feature"));
+            Literal lit = soln.getLiteral("frequency");
+            int frequency = lit.getInt();
+            float value_tf = JRIP_Classifier.TF_test(feature, frequency, voID);
+            float value_idf = idf(feature, datasets);
+            float value_tf_idf = value_tf * value_idf;
+            int index = indices_categories.get(feature);
+            vetor[index] = value_tf_idf;
+        }
+        qe.close();
+        JRIP_Classifier.creatfiletest(vetor, indices_categories);
+        Map<String, Double> rank = JRIP_Classifier.Classifier();
+        JRIP_Classifier.deleteFile();
+        
+        Model model = JRIP_Classifier.createRank(rank, limit, offset);
         return model;
     }
 
