@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.servlet.http.HttpServlet;
@@ -25,15 +24,11 @@ import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.rdf.model.Resource;
+import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.vocabulary.VCARD;
-import static uff.ic.swlab.ExportFiles.ExportARFF.GetDatasets;
-import static uff.ic.swlab.ExportFiles.ExportARFF.getCategory;
-import static uff.ic.swlab.ExportFiles.ExportARFF.idf;
 import uff.ic.swlab.connection.ConnectionPost;
-import uff.ic.swlab.tranning.Bayesian_tranning;
 import uff.swlab.classifier.BayesianClassifier;
 import static uff.swlab.classifier.BayesianClassifier.GetFeatures;
 import static uff.swlab.classifier.BayesianClassifier.GetIndices;
@@ -211,19 +206,10 @@ public class DoSearch extends HttpServlet {
 
     private Model doVoidSearchForScan(URL voidURL, Integer offset, Integer limit) throws FileNotFoundException, Exception {
         Model voID = readVoidURL(voidURL);
-        
+        Connection conn = ConnectionPost.Conectar();
         Integer indice = 0;
-        Map<String, Integer> indices_categories = new HashMap<String, Integer>();
-        ArrayList<String> datasets = GetDatasets();
-        for(String dataset: datasets){
-            ArrayList<String> categories = getCategory(dataset);
-            for(String category: categories){
-                if(!indices_categories.containsKey(category)){
-                    indice = indice + 1;
-                    indices_categories.put(category, indice);
-                }
-            }
-        }
+        Map<String, Integer> indices_categories = JRIP_Classifier.getFeatures(conn);
+        ArrayList<String> datasets = JRIP_Classifier.GetDatasets();
         
         Float[] vetor = new Float[indices_categories.size()];
         Arrays.fill(vetor, new Float(0));
@@ -244,16 +230,22 @@ public class DoSearch extends HttpServlet {
             Literal lit = soln.getLiteral("frequency");
             int frequency = lit.getInt();
             float value_tf = JRIP_Classifier.TF_test(feature, frequency, voID);
-            float value_idf = idf(feature, datasets);
+            float value_idf = JRIP_Classifier.idf(feature, datasets);
             float value_tf_idf = value_tf * value_idf;
-            int index = indices_categories.get(feature);
-            vetor[index] = value_tf_idf;
+            try{
+                int index = indices_categories.get(feature);
+                vetor[index] = value_tf_idf;
+            }catch(Throwable e){
+                continue;
+            }
+            
         }
         qe.close();
         JRIP_Classifier.creatfiletest(vetor, indices_categories);
         Map<String, Double> rank = JRIP_Classifier.Classifier();
         JRIP_Classifier.deleteFile();
         
+        //Model model = createDefaultModel();
         Model model = JRIP_Classifier.createRank(rank, limit, offset);
         return model;
     }
