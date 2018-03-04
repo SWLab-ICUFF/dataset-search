@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package uff.ic.swlab.tranning;
+package uff.ic.swlab.utils.tranning;
 
 import java.io.File;
 import java.sql.Connection;
@@ -26,7 +26,7 @@ import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.RDFNode;
-import uff.ic.swlab.connection.ConnectionPost;
+import uff.ic.swlab.utils.DBConnection;
 
 /**
  *
@@ -252,7 +252,7 @@ public class Bayesian_tranning {
     }
 
     public static void main(String[] args) throws ClassNotFoundException, SQLException {
-        Connection conn = ConnectionPost.Conectar();
+        Connection conn = DBConnection.connect();
         System.out.println("Create indices");
         ArrayList<String> datasets = GetDatasets();
         int id = 1;

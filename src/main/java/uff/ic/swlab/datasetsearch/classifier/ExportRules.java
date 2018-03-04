@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package uff.swlab.classifier;
+package uff.ic.swlab.datasetsearch.classifier;
 
 import java.io.File;
 import java.util.concurrent.ExecutorService;

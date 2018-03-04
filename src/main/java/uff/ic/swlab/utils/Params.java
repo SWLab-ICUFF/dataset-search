@@ -1,4 +1,4 @@
-package uff.ic.swlab.datasetsearch;
+package uff.ic.swlab.utils;
 
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
@@ -8,7 +8,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.validator.routines.UrlValidator;
 import org.apache.jena.riot.Lang;
 
-public final class Parameters {
+public final class Params {
 
     public final Lang lang;
     public final String query;
@@ -27,7 +27,7 @@ public final class Parameters {
         }
     }
 
-    private Parameters() {
+    private Params() {
         lang = null;
         query = null;
         voidURL = null;
@@ -37,7 +37,7 @@ public final class Parameters {
         method = null;
     }
 
-    public Parameters(HttpServletRequest request) throws UnsupportedEncodingException, MalformedURLException, Exception {
+    public Params(HttpServletRequest request) throws UnsupportedEncodingException, MalformedURLException, Exception {
         lang = detectRequestedLang(request.getHeader("Accept"));
 
         query = URLDecoder.decode(request.getParameter("q"), "UTF-8");

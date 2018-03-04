@@ -1,5 +1,7 @@
 package uff.ic.swlab.datasetsearch;
 
+import uff.ic.swlab.utils.DBConnection;
+import uff.ic.swlab.utils.Params;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -24,15 +26,12 @@ import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
-import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
-import org.apache.jena.vocabulary.VCARD;
-import uff.ic.swlab.connection.ConnectionPost;
-import uff.swlab.classifier.BayesianClassifier;
-import static uff.swlab.classifier.BayesianClassifier.GetFeatures;
-import static uff.swlab.classifier.BayesianClassifier.GetIndices;
-import uff.swlab.classifier.JRIP_Classifier;
+import uff.ic.swlab.datasetsearch.classifier.BayesianClassifier;
+import static uff.ic.swlab.datasetsearch.classifier.BayesianClassifier.GetFeatures;
+import static uff.ic.swlab.datasetsearch.classifier.BayesianClassifier.GetIndices;
+import uff.ic.swlab.datasetsearch.classifier.JRIP_Classifier;
 
 public class DoSearch extends HttpServlet {
 
@@ -44,7 +43,7 @@ public class DoSearch extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) {
         try {
-            Parameters p = new Parameters(request);
+            Params p = new Params(request);
             if (p.isKeywordSearch()) {
                 if (p.isHumanRequest()) {
                     redirectToUserInterface(request, p, response);
@@ -106,7 +105,7 @@ public class DoSearch extends HttpServlet {
         }
     }
 
-    private void redirectToUserInterface(HttpServletRequest request, Parameters p, HttpServletResponse response) throws UnsupportedEncodingException {
+    private void redirectToUserInterface(HttpServletRequest request, Params p, HttpServletResponse response) throws UnsupportedEncodingException {
         String resource = ("" + request.getRequestURL()).replaceFirst("http://", "http/")
                 + "?q=" + URLEncoder.encode(p.query, "UTF-8")
                 + (p.offset != null ? "&offset=" + p.offset : "")
@@ -142,7 +141,7 @@ public class DoSearch extends HttpServlet {
     private Model doVoidSearchForSelect(URL voidURL, Integer offset, Integer limit) throws SQLException, IOException {
         Map<String, Double> rank = new HashMap<>();
         ArrayList<String> features = new ArrayList<>();
-        Connection conn = ConnectionPost.Conectar();
+        Connection conn = DBConnection.connect();
         Model voID = readVoidURL(voidURL);
 
         Map<String, Integer> indices_datasets = GetIndices(conn);
@@ -199,21 +198,21 @@ public class DoSearch extends HttpServlet {
             }
         }
         conn.close();
-      
+
         Model model_result = BayesianClassifier.CreateRank(rank, limit, offset);
         return model_result;
     }
 
     private Model doVoidSearchForScan(URL voidURL, Integer offset, Integer limit) throws FileNotFoundException, Exception {
         Model voID = readVoidURL(voidURL);
-        Connection conn = ConnectionPost.Conectar();
+        Connection conn = DBConnection.connect();
         Integer indice = 0;
         Map<String, Integer> indices_categories = JRIP_Classifier.getFeatures(conn);
         ArrayList<String> datasets = JRIP_Classifier.GetDatasets();
-        
+
         Float[] vetor = new Float[indices_categories.size()];
         Arrays.fill(vetor, new Float(0));
-        
+
         String qr = "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> \n"
                 + "PREFIX void: <http://rdfs.org/ns/void#>\n"
                 + "Select distinct ?feature ?frequency\n"
@@ -232,19 +231,19 @@ public class DoSearch extends HttpServlet {
             float value_tf = JRIP_Classifier.TF_test(feature, frequency, voID);
             float value_idf = JRIP_Classifier.idf(feature, datasets);
             float value_tf_idf = value_tf * value_idf;
-            try{
+            try {
                 int index = indices_categories.get(feature);
                 vetor[index] = value_tf_idf;
-            }catch(Throwable e){
+            } catch (Throwable e) {
                 continue;
             }
-            
+
         }
         qe.close();
         JRIP_Classifier.creatfiletest(vetor, indices_categories);
         Map<String, Double> rank = JRIP_Classifier.Classifier();
         JRIP_Classifier.deleteFile();
-        
+
         //Model model = createDefaultModel();
         Model model = JRIP_Classifier.createRank(rank, limit, offset);
         return model;
