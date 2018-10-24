@@ -13,19 +13,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QuerySolution;
@@ -33,18 +24,12 @@ import org.apache.jena.query.QuerySolution;
 import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.rdf.model.ModelFactoryBase;
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.Resource;
 import weka.classifiers.Classifier;
-import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.converters.ArffLoader;
 
-/**
- *
- * @author angelo
- */
 public class JRIP_Classifier {
 
     public static ArrayList<String> GetDatasets() {
@@ -112,11 +97,10 @@ public class JRIP_Classifier {
             frequency = lit.getInt();
         }
         qe.close();
-        if (frequency == 0) {
+        if (frequency == 0)
             idf = 0;
-        } else {
+        else
             idf = frequency / (float) total_datasets;
-        }
 
         return idf;
     }
@@ -157,12 +141,10 @@ public class JRIP_Classifier {
         Set<String> key = indices_categories.keySet();
         for (Iterator<String> iterator = key.iterator(); iterator.hasNext();) {
             String chave = iterator.next();
-            if (chave.contains(",")) {
+            if (chave.contains(","))
                 chave = chave.replaceAll(",", "");
-            }
-            if (chave.contains("'")) {
+            if (chave.contains("'"))
                 chave = chave.replaceAll("'", "");
-            }
 
             writer.print("@ATTRIBUTE " + chave + " " + "REAL");
             writer.print("\n");
@@ -171,9 +153,8 @@ public class JRIP_Classifier {
         writer.print("\n\n\n");
         writer.print("@Data");
         writer.print("\n");
-        for (Float number : vetor) {
+        for (Float number : vetor)
             writer.print(String.valueOf(number) + ",");
-        }
         writer.print("?");
         writer.print("\n");
         writer.close();
@@ -202,7 +183,7 @@ public class JRIP_Classifier {
             String name_dataset = "http://datahub.io/api/rest/dataset/" + v_name[size - 1].replace(".model", "");
             rank.put(name_dataset, result[1]);
         }
-        
+
 //        Set<Map.Entry<String, Double>> set = rank.entrySet();
 //        List<Map.Entry<String, Double>> list = new ArrayList<Map.Entry<String, Double>>(set);
 //        Collections.sort(list, new Comparator<Map.Entry<String, Double>>() {
@@ -213,7 +194,6 @@ public class JRIP_Classifier {
 //            }
 //
 //        });
-
         System.out.println("fim");
 
         return rank;
