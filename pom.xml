@@ -102,5 +102,5 @@
             </plugin>
         </plugins>
     </build>
-
+    <name>Dataset Search</name>
 </project>
