@@ -1,7 +1,5 @@
 package uff.ic.swlab.datasetsearch;
 
-import uff.ic.swlab.utils.DBConnection;
-import uff.ic.swlab.utils.Params;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -32,6 +30,8 @@ import uff.ic.swlab.datasetsearch.classifier.BayesianClassifier;
 import static uff.ic.swlab.datasetsearch.classifier.BayesianClassifier.GetFeatures;
 import static uff.ic.swlab.datasetsearch.classifier.BayesianClassifier.GetIndices;
 import uff.ic.swlab.datasetsearch.classifier.JRIP_Classifier;
+import uff.ic.swlab.utils.DBConnection;
+import uff.ic.swlab.utils.Params;
 
 public class DoSearch extends HttpServlet {
 
@@ -44,58 +44,51 @@ public class DoSearch extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) {
         try {
             Params p = new Params(request);
-            if (p.isKeywordSearch()) {
-                if (p.isHumanRequest()) {
+            if (p.isKeywordSearch())
+                if (p.isHumanRequest())
                     redirectToUserInterface(request, p, response);
-                } else if (p.isAppRequest()) {
-                    try (OutputStream httpReponse = response.getOutputStream()) {
-                        Model model = doKeywordSearch(p.keywords, p.offset, p.limit);
+                else if (p.isAppRequest())
+                    try ( OutputStream httpReponse = response.getOutputStream()) {
+                    Model model = doKeywordSearch(p.keywords, p.offset, p.limit);
+                    if (model.size() > 0) {
+                        //response.setContentType(p.lang.getContentType().getContentType());
+                        response.setContentType(p.lang.getContentType().getContentTypeStr());
+                        RDFDataMgr.write(httpReponse, model, p.lang);
+                        httpReponse.flush();
+                    } else
+                        response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                } else
+                    new Exception("Unknown request agent.");
+            else if (p.isVoidSearch())
+                if (p.isHumanRequest())
+                    redirectToUserInterface(request, p, response);
+                else if (p.isAppRequest())
+                    if (p.method == p.method.SELECT)
+                        try ( OutputStream httpReponse = response.getOutputStream()) {
+                        Model model = doVoidSearchForSelect(p.voidURL, p.offset, p.limit);
                         if (model.size() > 0) {
-                            response.setContentType(p.lang.getContentType().getContentType());
+                            //response.setContentType(p.lang.getContentType().getContentType());
+                            response.setContentType(p.lang.getContentType().getContentTypeStr());
                             RDFDataMgr.write(httpReponse, model, p.lang);
                             httpReponse.flush();
-                        } else {
+                        } else
                             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                        }
-                    }
-                } else {
-                    new Exception("Unknown request agent.");
-                }
-            } else if (p.isVoidSearch()) {
-                if (p.isHumanRequest()) {
-                    redirectToUserInterface(request, p, response);
-                } else if (p.isAppRequest()) {
-                    if (p.method == p.method.SELECT) {
-                        try (OutputStream httpReponse = response.getOutputStream()) {
-                            Model model = doVoidSearchForSelect(p.voidURL, p.offset, p.limit);
-                            if (model.size() > 0) {
-                                response.setContentType(p.lang.getContentType().getContentType());
-                                RDFDataMgr.write(httpReponse, model, p.lang);
-                                httpReponse.flush();
-                            } else {
-                                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                            }
-                        }
-                    } else if (p.method == p.method.SCAN) {
-                        try (OutputStream httpReponse = response.getOutputStream()) {
-                            Model model = doVoidSearchForScan(p.voidURL, p.offset, p.limit);
-                            if (model.size() > 0) {
-                                response.setContentType(p.lang.getContentType().getContentType());
-                                RDFDataMgr.write(httpReponse, model, p.lang);
-                                httpReponse.flush();
-                            } else {
-                                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                            }
-                        }
-                    } else {
+                    } else if (p.method == p.method.SCAN)
+                        try ( OutputStream httpReponse = response.getOutputStream()) {
+                        Model model = doVoidSearchForScan(p.voidURL, p.offset, p.limit);
+                        if (model.size() > 0) {
+                            //response.setContentType(p.lang.getContentType().getContentType());
+                            response.setContentType(p.lang.getContentType().getContentTypeStr());
+                            RDFDataMgr.write(httpReponse, model, p.lang);
+                            httpReponse.flush();
+                        } else
+                            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                    } else
                         throw new Exception("Unknown search method.");
-                    }
-                } else {
+                else
                     throw new Exception("Unknown request agent.");
-                }
-            } else {
+            else
                 throw new Exception("Unknown search type.");
-            }
         } catch (Exception e) {
             try {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
@@ -105,7 +98,8 @@ public class DoSearch extends HttpServlet {
         }
     }
 
-    private void redirectToUserInterface(HttpServletRequest request, Params p, HttpServletResponse response) throws UnsupportedEncodingException {
+    private void redirectToUserInterface(HttpServletRequest request, Params p, HttpServletResponse response) throws
+            UnsupportedEncodingException {
         String resource = ("" + request.getRequestURL()).replaceFirst("http://", "http/")
                 + "?q=" + URLEncoder.encode(p.query, "UTF-8")
                 + (p.offset != null ? "&offset=" + p.offset : "")
@@ -203,7 +197,8 @@ public class DoSearch extends HttpServlet {
         return model_result;
     }
 
-    private Model doVoidSearchForScan(URL voidURL, Integer offset, Integer limit) throws FileNotFoundException, Exception {
+    private Model doVoidSearchForScan(URL voidURL, Integer offset, Integer limit) throws FileNotFoundException,
+            Exception {
         Model voID = readVoidURL(voidURL);
         Connection conn = DBConnection.connect();
         Integer indice = 0;
@@ -254,13 +249,12 @@ public class DoSearch extends HttpServlet {
         try {
             Lang[] langs = {null, Lang.TURTLE, Lang.RDFXML, Lang.NTRIPLES, Lang.TRIG,
                 Lang.NQUADS, Lang.JSONLD, Lang.RDFJSON, Lang.TRIX, Lang.RDFTHRIFT, Lang.NQ, Lang.N3, Lang.NT, Lang.TTL};
-            for (Lang lang : langs) {
+            for (Lang lang : langs)
                 try {
-                    RDFDataMgr.read(aux, voidURL.toString(), lang);
-                    return aux;
-                } catch (Throwable e) {
-                    continue;
-                }
+                RDFDataMgr.read(aux, voidURL.toString(), lang);
+                return aux;
+            } catch (Throwable e) {
+                continue;
             }
         } catch (Throwable e) {
             System.out.println("Error Read Void.");
