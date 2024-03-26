@@ -1,12 +1,6 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package uff.ic.swlab.datasetsearch.classifier;
 
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -21,12 +15,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
-import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.Resource;
-import org.apache.jena.vocabulary.VCARD4;
 
 /**
  *
@@ -41,9 +33,8 @@ public class BayesianClassifier {
         stm.setInt(1, linkset);
         stm.setInt(2, dataset);
         ResultSet rs = stm.executeQuery();
-        while (rs.next()) {
+        while (rs.next())
             result = rs.getFloat("prob");
-        }
         rs.close();
         stm.close();
         return result;
@@ -55,9 +46,8 @@ public class BayesianClassifier {
         PreparedStatement stm = conn.prepareStatement(qr);
         stm.setInt(1, dataset);
         ResultSet rs = stm.executeQuery();
-        while (rs.next()) {
+        while (rs.next())
             result = rs.getFloat("prob");
-        }
         rs.close();
         stm.close();
         return result;
@@ -121,16 +111,15 @@ public class BayesianClassifier {
         for (Map.Entry<String, Double> pair : list) {
 
             int t = java.lang.Double.compare(pair.getValue(), Double.NEGATIVE_INFINITY);
-            if (t == 0) {
+            if (t == 0)
                 result = -Double.MAX_VALUE;
-            } else {
+            else
                 result = pair.getValue();
-            }
             Resource resouce = model.createResource(pair.getKey())
                     .addProperty(property_rank, hasRank)
                     .addProperty(property_value, model.createTypedLiteral(result));
         }
-        
+
         String qr = "PREFIX vrank: <http://purl.org/voc/vrank#>\n"
                 + "\n"
                 + "CONSTRUCT {?dataset a vrank:hasrank. \n"
